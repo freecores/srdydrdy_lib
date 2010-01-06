@@ -1,7 +1,8 @@
 module fib_lookup_fsm
   (/*AUTOARG*/
   // Outputs
-  lpp_drdy, ft_wdata, ft_rd_n, ft_wr_n, ft_addr, lout_data, lout_srdy,
+  lpp_drdy, ft_wdata, ft_rd_en, ft_wr_en, ft_addr, lout_data,
+  lout_srdy, lout_dst_vld,
   // Inputs
   clk, reset, lpp_data, lpp_srdy, ft_rdata, lout_drdy
   );
@@ -14,12 +15,13 @@ module fib_lookup_fsm
 
   input [`FIB_ENTRY_SZ-1:0]       ft_rdata;
   output reg [`FIB_ENTRY_SZ-1:0]  ft_wdata;
-  output reg                      ft_rd_n, ft_wr_n;
+  output reg                      ft_rd_en, ft_wr_en;
   output reg [`FIB_ASZ-1:0]       ft_addr;
   
   output reg [`NUM_PORTS-1:0]     lout_data;
   output reg                      lout_srdy;
   input                           lout_drdy;
+  output [`NUM_PORTS-1:0]         lout_dst_vld;
   
   wire [`FIB_ASZ-1:0]             hf_out;
   reg [47:0]                      hf_in;
@@ -42,13 +44,16 @@ module fib_lookup_fsm
     s_init0 = 3, s_init1 = 4;
   localparam ns_idle = 1, ns_da_lookup = 2, ns_sa_lookup = 4,
     ns_init0 = 8, ns_init1 = 16;
+
+  // send all results back to their originating port
+  assign lout_dst_vld = source_port_mask;
   
   always @*
     begin
       hf_in = 0;
       nxt_state = state;
-      ft_rd_n = 1;
-      ft_wr_n = 1;
+      ft_rd_en = 0;
+      ft_wr_en = 0;
       ft_addr = hf_out;
       lout_data = 0;
       lout_srdy = 0;
@@ -70,7 +75,7 @@ module fib_lookup_fsm
             else if (lpp_srdy)
               begin
                 hf_in = lpp_data[`PAR_MACDA];
-                ft_rd_n = 0;
+                ft_rd_en = 1;
                 nxt_state = ns_da_lookup;
               end
           end
@@ -99,7 +104,7 @@ module fib_lookup_fsm
         // will bump out current occupant and update
         state[s_sa_lookup] :
           begin
-            ft_wr_n = 0;
+            ft_wr_en = 1;
             hf_in = lpp_data[`PAR_MACSA];
             ft_wdata[`FIB_MACADDR] = lpp_data[`PAR_MACSA];
             ft_wdata[`FIB_AGE]  = `FIB_MAX_AGE;
@@ -117,7 +122,7 @@ module fib_lookup_fsm
         state[s_init1] :
           begin
             nxt_init_ctr = init_ctr + 1;
-            ft_wr_n = 0;
+            ft_wr_en = 1;
             ft_addr = init_ctr;
             ft_wdata = 0;
             if (ft_addr == (`FIB_ENTRIES-1))

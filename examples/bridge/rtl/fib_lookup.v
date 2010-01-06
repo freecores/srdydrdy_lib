@@ -30,11 +30,12 @@ module fib_lookup
   /*AUTOWIRE*/
   // Beginning of automatic wires (for undeclared instantiated-module outputs)
   wire [`FIB_ASZ-1:0]   ft_addr;                // From fsm0 of fib_lookup_fsm.v
-  wire                  ft_rd_n;                // From fsm0 of fib_lookup_fsm.v
+  wire                  ft_rd_en;               // From fsm0 of fib_lookup_fsm.v
   wire [`FIB_ENTRY_SZ-1:0] ft_wdata;            // From fsm0 of fib_lookup_fsm.v
-  wire                  ft_wr_n;                // From fsm0 of fib_lookup_fsm.v
+  wire                  ft_wr_en;               // From fsm0 of fib_lookup_fsm.v
   wire [`NUM_PORTS-1:0] lout_data;              // From fsm0 of fib_lookup_fsm.v
   wire                  lout_drdy;              // From fib_res_out of sd_mirror.v
+  wire [`NUM_PORTS-1:0] lout_dst_vld;           // From fsm0 of fib_lookup_fsm.v
   wire                  lout_srdy;              // From fsm0 of fib_lookup_fsm.v
   wire                  lpp_drdy;               // From fsm0 of fib_lookup_fsm.v
   wire                  lpp_srdy;               // From port_parse_in of sd_input.v
@@ -72,8 +73,8 @@ module fib_lookup
      // Outputs
      .d_out                             (ft_rdata),              // Templated
      // Inputs
-     .wr_n                              (ft_wr_n),               // Templated
-     .rd_n                              (ft_rd_n),               // Templated
+     .wr_en                             (ft_wr_en),              // Templated
+     .rd_en                             (ft_rd_en),              // Templated
      .clk                               (clk),                   // Templated
      .d_in                              (ft_wdata),              // Templated
      .addr                              (ft_addr));               // Templated
@@ -83,11 +84,12 @@ module fib_lookup
      // Outputs
      .lpp_drdy                          (lpp_drdy),
      .ft_wdata                          (ft_wdata[`FIB_ENTRY_SZ-1:0]),
-     .ft_rd_n                           (ft_rd_n),
-     .ft_wr_n                           (ft_wr_n),
+     .ft_rd_en                          (ft_rd_en),
+     .ft_wr_en                          (ft_wr_en),
      .ft_addr                           (ft_addr[`FIB_ASZ-1:0]),
      .lout_data                         (lout_data[`NUM_PORTS-1:0]),
      .lout_srdy                         (lout_srdy),
+     .lout_dst_vld                      (lout_dst_vld[`NUM_PORTS-1:0]),
      // Inputs
      .clk                               (clk),
      .reset                             (reset),
@@ -113,6 +115,10 @@ module fib_lookup
      .reset                             (reset),
      .c_srdy                            (lout_srdy),             // Templated
      .c_data                            (lout_data),             // Templated
+     .c_dst_vld                         (lout_dst_vld),          // Templated
      .p_drdy                            (flo_drdy));              // Templated
 
 endmodule // fib_lookup
+// Local Variables:
+// verilog-library-directories:("." "../../../rtl/verilog/closure" "../../../rtl/verilog/memory" "../../../rtl/verilog/forks")
+// End:  
