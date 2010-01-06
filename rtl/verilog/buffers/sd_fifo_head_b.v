@@ -53,9 +53,6 @@ module sd_fifo_head_b
   reg 			empty;
   reg                   full, nxt_full;
   reg [asz-1:0]         nxt_com_wrptr;
-  generate if (!commit)
-    always @* com_wrptr = cur_wrptr;
-  endgenerate
 
   assign 		c_drdy = !full & enable;
   
@@ -101,21 +98,29 @@ module sd_fifo_head_b
 	end // else: !if(reset)
     end // always @ (posedge clk)
 
-  generate if (commit)
-    always @*
+  generate 
+    if (commit)
       begin
-        if (enable & c_commit & !c_abort & c_srdy & !full)
-          nxt_com_wrptr = wrptr_p1;
-        else
-          nxt_com_wrptr = com_wrptr;
-      end
+	always @*
+	  begin
+            if (enable & c_commit & !c_abort & c_srdy & !full)
+              nxt_com_wrptr = wrptr_p1;
+            else
+              nxt_com_wrptr = com_wrptr;
+	  end
     
-    always @(posedge clk)
+	always @(posedge clk)
+	  begin
+            if (reset)
+              com_wrptr <= `SDLIB_DELAY bound_low;
+            else
+              com_wrptr <= `SDLIB_DELAY nxt_com_wrptr;
+	  end
+      end // if (commit)
+    else
       begin
-        if (reset)
-          com_wrptr <= `SDLIB_DELAY bound_low;
-        else
-          com_wrptr <= `SDLIB_DELAY nxt_com_wrptr;
+	always @*
+	  com_wrptr = cur_wrptr;
       end
   endgenerate
 

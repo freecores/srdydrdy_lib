@@ -5,8 +5,8 @@
 //----------------------------------------------------------------------
 
 module behave2p_mem
-  #(parameter depth=256,
-    parameter width=8,
+  #(parameter width=8,
+    parameter depth=256,
     parameter addr_sz=$clog2(depth))
   (/*AUTOARG*/
   // Outputs

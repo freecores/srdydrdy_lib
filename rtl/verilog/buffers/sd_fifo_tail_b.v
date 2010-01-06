@@ -64,13 +64,10 @@ module sd_fifo_tail_b
      output [width-1:0]   p_data
      );
 
-  reg [asz-1:0]           cur_rdptr;
   reg [asz-1:0]           nxt_cur_rdptr;
   reg [asz-1:0]           cur_rdptr_p1;
-  reg [asz-1:0] 	  com_rdptr;
   reg 			empty, full;
 
-  reg 			p_srdy;
   reg 			nxt_irdy;
 
   reg [width-1:0]       hold_a, hold_b;
@@ -78,6 +75,9 @@ module sd_fifo_tail_b
   reg                   prev_re;
   reg [asz:0]           tmp_usage;
   reg [asz:0]           fifo_size;
+  wire 			rbuf1_drdy;
+  wire 			ip_srdy, ip_drdy;
+  wire [width-1:0] 	ip_data;
 
   // Stage 1 -- Read pipeline
   // issue a read if:
@@ -102,8 +102,9 @@ module sd_fifo_tail_b
 	  nxt_cur_rdptr = com_rdptr;
 	  mem_re = 0;
 	end
-      else if (enable & !empty & (!valid_a | (!prev_re & !valid_b) | 
-                             (valid_a & valid_b & p_drdy)))
+//      else if (enable & !empty & (!valid_a | (!prev_re & !valid_b) | 
+//                             (valid_a & valid_b & p_drdy)))
+      else if (enable & !empty & ip_drdy)
         begin
 	  nxt_cur_rdptr = cur_rdptr_p1;
           mem_re = 1;
@@ -159,82 +160,64 @@ module sd_fifo_tail_b
     begin
       if (reset)
         begin
-	  valid_a <= `SDLIB_DELAY 0;
-          hold_a  <= `SDLIB_DELAY 0;
           prev_re <= `SDLIB_DELAY 0;
-        end
+	end
       else 
         begin
 	  if (commit && p_abort)
 	    prev_re <= `SDLIB_DELAY 0;
 	  else
             prev_re <= `SDLIB_DELAY mem_re;
-
-	  if (commit && p_abort)
-	    valid_a <= `SDLIB_DELAY 0;
-          else if (prev_re)
-            begin
-	      valid_a <= `SDLIB_DELAY 1;
-              hold_a  <= `SDLIB_DELAY mem_rd_data;
-            end
-          else if (!valid_b | p_drdy)
-            valid_a <= `SDLIB_DELAY 0;
-        end
-    end // always @ (posedge clk or posedge reset)
-  
-  generate
-    if (commit == 1)
-      begin : gen_s2
-	always @(posedge clk)
-	  begin
-	    if (prev_re)
-	      rdaddr_a <= `SDLIB_DELAY rdaddr_s0;
-	  end
-      end
-  endgenerate
-
-  // Stage 3 -- output irdy/trdy
-  always @(`SDLIB_CLOCKING)
-    begin
-      if (reset)
-        begin
-	  valid_b <= `SDLIB_DELAY 0;
-          hold_b  <= `SDLIB_DELAY 0;
-        end
-      else 
-        begin
-	  if (commit && p_abort)
-	    valid_b <= `SDLIB_DELAY 0;
-          else if (valid_a & (!valid_b | p_drdy))
-            begin
-	      valid_b <= `SDLIB_DELAY 1;
-              hold_b  <= `SDLIB_DELAY hold_a;
-            end
-          else if (valid_b & p_drdy)
-            valid_b <= `SDLIB_DELAY 0;
-        end
-    end // always @ (posedge clk or posedge reset)
+	end // else: !if(reset)
+    end // always @ (`SDLIB_CLOCKING)
 
   generate
     if (commit == 1)
-      begin : gen_s3
-	always @(posedge clk)
-	  begin
-	    if (valid_a & (!valid_b | p_drdy))
-	      rdaddr_b <= `SDLIB_DELAY rdaddr_a;
-	  end
+      begin
+	wire [asz-1:0] ip_rdaddr, p_rdaddr;
+
+	sd_input #(asz+width) rbuf1
+	  (.clk (clk), .reset (p_abort | reset),
+	   .c_srdy (prev_re), 
+	   .c_drdy (rbuf1_drdy),
+	   .c_data ({rdaddr_s0,mem_rd_data}),
+	   .ip_srdy (ip_srdy), .ip_drdy (ip_drdy),
+	   .ip_data ({ip_rdaddr,ip_data}));
+	
+	sd_output #(asz+width) rbuf2
+	  (.clk (clk), .reset (p_abort | reset),
+	   .ic_srdy (ip_srdy), 
+	   .ic_drdy (ip_drdy),
+	   .ic_data ({ip_rdaddr,ip_data}),
+	   .p_srdy (p_srdy), .p_drdy (p_drdy),
+	   .p_data ({p_rdaddr,p_data}));
 
 	always @*
 	  begin
 	    if (p_commit)
-	      nxt_com_rdptr = rdaddr_b;
+	      nxt_com_rdptr = p_rdaddr;
 	    else
 	      nxt_com_rdptr = com_rdptr;
 	  end
-      end
+      end // if (commit == 1)
+    else
+      begin
+	sd_input #(width) rbuf1
+	  (.clk (clk), .reset (p_abort | reset),
+	   .c_srdy (prev_re), 
+	   .c_drdy (rbuf1_drdy),
+	   .c_data (mem_rd_data),
+	   .ip_srdy (ip_srdy), .ip_drdy (ip_drdy),
+	   .ip_data (ip_data));
+	
+	sd_output #(width) rbuf2
+	  (.clk (clk), .reset (p_abort | reset),
+	   .ic_srdy (ip_srdy), 
+	   .ic_drdy (ip_drdy),
+	   .ic_data (ip_data),
+	   .p_srdy (p_srdy), .p_drdy (p_drdy),
+	   .p_data (p_data));
+      end // else: !if(commit == 1)
   endgenerate
 
-  assign p_srdy = valid_b;
-  assign p_data = hold_b;
- 
 endmodule // it_fifo
