@@ -33,6 +33,17 @@
 `define PCC_EOP     2'b10    // End of packet
 `define PCC_BADEOP  2'b11    // End of packet w/ error
 
+// Packet FIFO Word
+// uses same field definitions as Packet Ring Word, but no PVEC bit
+`define PFW_SZ 69
+
+// Port FIFO sizes
+`define RX_FIFO_DEPTH 64
+`define TX_FIFO_DEPTH 256
+
+`define RX_USG_SZ     $clog2(`RX_FIFO_DEPTH)+1
+`define TX_USG_SZ     $clog2(`TX_FIFO_DEPTH)+1
+
 // Packet Ring Word
 
 `define PRW_SZ       70
@@ -40,3 +51,7 @@
 `define PRW_PCC      65:64     // packet control code
 `define PRW_VALID    68:66     // # of valid bytes modulo 8
 `define PRW_PVEC     69        // indicates this is port vector word
+
+// GMII definitions
+`define GMII_PRE     8'h55
+`define GMII_SFD     8'hD5

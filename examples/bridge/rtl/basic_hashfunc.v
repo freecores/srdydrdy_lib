@@ -8,13 +8,14 @@
 module basic_hashfunc
   #(parameter input_sz=48,
     parameter table_sz=1024,
-    parameter fsz=clogb2(table_sz))
+    parameter fsz=$clog2(table_sz))
   (
    input [input_sz-1:0]  hf_in,
    output reg [fsz-1:0]  hf_out);
 
-  //localparam folds = (input_sz/fsz) + ( (input_sz%fsz) == 0) ? 0 : 1;
-  localparam folds = num_folds(input_sz, fsz);
+  // const function not supported by Icarus Verilog
+  //localparam folds = num_folds(input_sz, fsz);
+  localparam folds = 5;
 
   wire [folds*fsz-1:0]   tmp_array;
   
@@ -47,6 +48,7 @@ module basic_hashfunc
     end
   endfunction
       
+/* -----\/----- EXCLUDED -----\/-----
   function integer clogb2;
     input [31:0] depth;
     integer      i;
@@ -56,5 +58,6 @@ module basic_hashfunc
         i = i >> 1;
     end
   endfunction // for
+ -----/\----- EXCLUDED -----/\----- */
   
 endmodule // hashfunc

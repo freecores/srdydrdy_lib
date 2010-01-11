@@ -1,0 +1,5 @@
+#!/bin/bash
+
+iverilog -f bridge.vf
+./a.out
+
