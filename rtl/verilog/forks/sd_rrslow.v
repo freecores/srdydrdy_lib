@@ -61,6 +61,7 @@ module sd_rrslow
   reg [$clog2(inputs)-1:0] data_ind;
 
   wire [width-1:0]     rr_mux_grid [0:inputs-1];
+  reg 		       rr_locked;
   genvar               i;
   integer              j;
   wire                 trig_pattern;
@@ -75,7 +76,7 @@ module sd_rrslow
 
     if (mode == 2)
       begin : tp_gen
-        reg rr_locked, nxt_rr_locked;
+        reg nxt_rr_locked;
         
         assign trig_pattern = (rr_mux_grid[data_ind] & eod_mask) == eod_pattern;
         always @*
@@ -125,7 +126,7 @@ module sd_rrslow
         nxt_rr_state = rr_state;
       else if ((mode == 0) & !p_drdy)
         nxt_rr_state = rr_state;
-      else if ((mode == 2) & (locked | (c_srdy & rr_state)))
+      else if ((mode == 2) & (rr_locked | (c_srdy & rr_state)))
         nxt_rr_state = rr_state;
       else
         nxt_rr_state = { rr_state[0], rr_state[inputs-1:1] };
