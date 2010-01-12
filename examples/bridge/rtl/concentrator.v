@@ -13,19 +13,16 @@ module concentrator
    // End of automatics
    );
 
-  wire [`PFW_SZ-1:0]	ic_data;		// From body of template_body_1i1o.v
-  wire			ic_drdy;		// From sdout of sd_output.v
-  wire			ic_srdy;		// From body of template_body_1i1o.v
   wire [7:0]	ip_data;		// From sdin of sd_input.v
   wire [1:0] 	ip_code;
   reg			ip_drdy;
   wire			ip_srdy;		// From sdin of sd_input.v
 
   reg [`PFW_SZ-1:0] 	nxt_p_data;
-  reg [1:0] 		nxt_pkt_code, pkt_code;
   reg 			nxt_p_srdy;
   reg [2:0] 		count, nxt_count;
   reg 			nxt_p_abort, nxt_p_commit;
+  wire [1:0]            pkt_code = p_data[`PRW_PCC];
 
   sd_input #(8+2) sdin
     (
@@ -44,7 +41,6 @@ module concentrator
     begin
       nxt_p_data = p_data;
       nxt_p_srdy = p_srdy;
-      nxt_pkt_code = pkt_code;
       nxt_p_data = p_data;
       nxt_count = count;
       nxt_p_commit = p_commit;
@@ -57,14 +53,14 @@ module concentrator
 	      nxt_p_srdy = 0;
 	      nxt_p_commit = 0;
 	      ip_drdy = 1;
-	      nxt_pkt_code = `PCC_DATA;
+	      nxt_p_data[`PRW_PCC] = `PCC_DATA;
 	      nxt_count = 0;
 
 	      if (ip_srdy)
 		begin
 		  nxt_count = 1;
 		  if (ip_code != `PCC_DATA)
-		    nxt_pkt_code = ip_code;
+		    nxt_p_data[`PRW_PCC] = ip_code;
 		  nxt_p_data[63:56] = ip_data;
 		end
 	    end
@@ -73,7 +69,7 @@ module concentrator
 	begin
 	  ip_drdy = 1;
 	  if (ip_code != `PCC_DATA)
-	    nxt_pkt_code = ip_code;
+	    nxt_p_data[`PRW_PCC] = ip_code;
 
 	  nxt_count = count + 1;
 	  case (count)
@@ -92,13 +88,17 @@ module concentrator
 		begin
 		  nxt_p_commit = 1;
 		  nxt_p_srdy   = 1;
+                  nxt_p_data[`PRW_VALID] = count + 1;
 		end
 	      else if ((ip_code == `PCC_BADEOP) || (pkt_code == `PCC_BADEOP))
 		begin
 		  nxt_p_abort = 1;
 		end
 	      else
-		nxt_p_srdy = 1;
+                begin
+		  nxt_p_srdy = 1;
+                  nxt_p_data[`PRW_VALID] = 0;
+                end
 	    end
 	end
     end // always @ *

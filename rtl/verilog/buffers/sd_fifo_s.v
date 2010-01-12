@@ -37,7 +37,7 @@ module sd_fifo_s
      input       p_reset,
      output      p_srdy,
      input       p_drdy,
-     output [width-1:0] p_data
+     output reg [width-1:0] p_data
      );
 
   localparam asz = $clog2(depth);
@@ -48,7 +48,6 @@ module sd_fifo_s
   wire [asz:0] 		rdptr_tail, rdptr_tail_sync;
   wire			wr_en;
   wire [asz:0] 		wrptr_head, wrptr_head_sync;
-  reg [width-1:0] 	p_data;
   reg 			dly_rd_en;
   wire [asz-1:0] 	rd_addr, wr_addr;
 

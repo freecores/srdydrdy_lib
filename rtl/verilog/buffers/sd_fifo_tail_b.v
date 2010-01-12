@@ -131,11 +131,11 @@ module sd_fifo_tail_b
 	cur_rdptr <= `SDLIB_DELAY nxt_cur_rdptr;
     end
 
+  reg [asz-1:0]  rdaddr_s0, rdaddr_a, rdaddr_b;
+  reg [asz-1:0]  nxt_com_rdptr;
   generate
     if (commit == 1)
       begin : gen_s0
-	reg [asz-1:0]  rdaddr_s0, rdaddr_a, rdaddr_b;
-	reg [asz-1:0]  nxt_com_rdptr;
 
 	always @(posedge clk)
 	  begin
@@ -173,7 +173,7 @@ module sd_fifo_tail_b
 
   generate
     if (commit == 1)
-      begin
+      begin : gen_s2
 	wire [asz-1:0] ip_rdaddr, p_rdaddr;
 
 	sd_input #(asz+width) rbuf1
@@ -201,7 +201,7 @@ module sd_fifo_tail_b
 	  end
       end // if (commit == 1)
     else
-      begin
+      begin : gen_ns2
 	sd_input #(width) rbuf1
 	  (.clk (clk), .reset (p_abort | reset),
 	   .c_srdy (prev_re), 

@@ -67,6 +67,21 @@ module gmii_driver
    end
 endtask
 
+  task print_packet;
+    input [31:0] length;
+    integer      i;
+    begin
+      for (i=0; i<length; i=i+1)
+	begin
+	  if (i % 16 == 0) $write ("%x: ", i[15:0]);
+	  $write ("%x ", rxbuf[i]);
+	  if (i % 16 == 7) $write ("| ");
+	  if (i % 16 == 15) $write ("\n");
+	end
+      if (i % 16 != 0) $write ("\n");
+    end
+  endtask
+
   task send_packet;
     input [47:0] da, sa;
     input [15:0] length;
@@ -82,6 +97,8 @@ endtask
         rxbuf[length-2], rxbuf[length-1] } = crc32_result;
 
       $display ("%m : Sending packet DA=%x SA=%x of length %0d", da, sa, length);
+      print_packet (length);
+      
       repeat (7)
 	begin
 	  @(posedge rx_clk);

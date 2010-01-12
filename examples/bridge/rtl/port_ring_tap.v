@@ -2,9 +2,10 @@
 // fli (FIB lookup in), prx (port in/RX), and ptx (port out/TX)
 
 module port_ring_tap
-  #(parameter rdp_sz = `PRW_SZ,
-    parameter pdp_sz = `PFW_SZ,
-    parameter portnum = 0)
+  #(parameter portnum = 0,
+    parameter rdp_sz = `PRW_SZ,
+    parameter pdp_sz = `PFW_SZ
+    )
   (
    input         clk,
    input         reset,

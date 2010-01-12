@@ -27,7 +27,8 @@ module port_ring_tap_fsm
   reg [4:0]            state, nxt_state;
 
   wire [`NUM_PORTS-1:0] port_mask;
-  reg [`NUM_PORTS-1:0]  pe_vec, nxt_pe_vec;
+  //reg [`NUM_PORTS-1:0]  pe_vec, nxt_pe_vec;
+  wire [`NUM_PORTS-1:0] nxt_pe_vec = lri_data[`PRW_DATA] & ~port_mask;
 
   assign port_mask = 1 << portnum;
 
@@ -77,7 +78,7 @@ module port_ring_tap_fsm
                 if (lri_data[`PRW_DATA] & port_mask)
                   begin
                     // packet is for our port
-                    nxt_pe_vec = lri_data[`PRW_DATA] & ~port_mask;
+                    //nxt_pe_vec = lri_data[`PRW_DATA] & ~port_mask;
 
                     // if enable vector is not empty, send the
                     // vector to the next port
@@ -89,7 +90,7 @@ module port_ring_tap_fsm
                         lri_drdy = 1;
                         nxt_state = ns_rcopy;
                       end
-                    else
+                    else if (nxt_pe_vec == 0)
                       begin
                         lri_drdy = 1;
                         nxt_state = ns_rsink;
@@ -157,7 +158,7 @@ module port_ring_tap_fsm
 
 	// data on ring is for our port and we are the last port
 	// copy ring data to our TX buffer but do not copy to ring
-	state[s_rcopy] :
+	state[s_rsink] :
 	  begin
 	    lptx_data = lri_data[`PFW_SZ-1:0];
 	    if (lri_srdy & lptx_drdy)

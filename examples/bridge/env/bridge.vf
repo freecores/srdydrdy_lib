@@ -2,6 +2,7 @@
 
 env_top.v
 gmii_driver.v
+gmii_monitor.v
 
 ../rtl/basic_hashfunc.v
 ../rtl/bridge_ex1.v

@@ -8,6 +8,7 @@
 // a parse result to the FIB for lookup.  Otherwise aborts the
 // packet so it is flushed from the packet FIFO.
 module pkt_parse
+  #(parameter port_num=0)
   (input          clk,
    input          reset,
 
@@ -74,7 +75,10 @@ module pkt_parse
 	    0, 1, 2, 3, 4, 5 : 
 	      begin
 		if (count == 0)
-		  nxt_p2f_data = 0;
+                  begin
+		    nxt_p2f_data = 0;
+                    nxt_p2f_data[`PAR_SRCPORT] = port_num;
+                  end
 
 		if ((lp_code == `PCC_EOP) || (lp_code == `PCC_BADEOP))
 		  begin

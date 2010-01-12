@@ -10,7 +10,7 @@ module sd_tx_gigmac
   (
    input        clk,
    input        reset,
-   output reg        gmii_tx_dv,
+   output reg        gmii_tx_en,
    output reg [7:0]  gmii_txd,
 
    input       txg_srdy,
@@ -26,7 +26,7 @@ module sd_tx_gigmac
   reg [3:0]    count, nxt_count;
 
   reg [7:0]    nxt_gmii_txd;
-  reg 	       nxt_gmii_tx_dv;
+  reg 	       nxt_gmii_tx_en;
   reg [3:0]    state, nxt_state;
 
   localparam s_idle = 0, s_preamble = 1, s_payload = 2, s_ipg = 3;
@@ -49,7 +49,7 @@ module sd_tx_gigmac
     begin
       ip_drdy = 0;
       nxt_count = count;
-      nxt_gmii_tx_dv = 0;
+      nxt_gmii_tx_en = 0;
       nxt_gmii_txd = gmii_txd;
 
       case (1'b1)
@@ -57,7 +57,7 @@ module sd_tx_gigmac
 	  begin
 	    if (ip_srdy & (ip_code == `PCC_SOP))
 	      begin
-		nxt_gmii_tx_dv = 1;
+		nxt_gmii_tx_en = 1;
 		nxt_gmii_txd = `GMII_PRE;
 		nxt_count = 1;
 		nxt_state = ns_preamble;
@@ -71,23 +71,24 @@ module sd_tx_gigmac
 	state[s_preamble] :
 	  begin
 	    nxt_count = count + 1;
-	    nxt_gmii_tx_dv = 1;
+	    nxt_gmii_tx_en = 1;
 	    if (count == 6)
-	      nxt_gmii_txd = `GMII_SFD;
+              begin
+	        nxt_gmii_txd = `GMII_SFD;
+	        nxt_state = ns_payload;
+              end
 	    else
 	      nxt_gmii_txd = `GMII_PRE;
-
-	    if (count == 7)
-	      nxt_state = ns_payload;
 	  end // case: state[s_preamble]
 
 	state[s_payload] :
 	  begin
 	    ip_drdy = 1;
-
+	    nxt_gmii_tx_en = 1;
+            nxt_gmii_txd = ip_data;
+            
 	    if (!ip_srdy | ((ip_code == `PCC_EOP) | (ip_code == `PCC_BADEOP)))
 	      begin
-		nxt_gmii_tx_dv = 0;
 		nxt_count = 0;
 		nxt_state = ns_ipg;
 	      end
@@ -95,7 +96,7 @@ module sd_tx_gigmac
 
 	state[s_ipg] :
 	  begin
-	    nxt_gmii_tx_dv = 0;
+	    nxt_gmii_tx_en = 0;
 	    ip_drdy = 0;
 	    nxt_count = count + 1;
 	    if (count == 11)
@@ -112,17 +113,17 @@ module sd_tx_gigmac
 	begin
 	  state <= #1 1;
 	  /*AUTORESET*/
-	  // Beginning of autoreset for uninitialized flops
-	  count <= 4'h0;
-	  gmii_tx_dv <= 1'h0;
-	  gmii_txd <= 8'h0;
-	  // End of automatics
+          // Beginning of autoreset for uninitialized flops
+          count <= 4'h0;
+          gmii_tx_en <= 1'h0;
+          gmii_txd <= 8'h0;
+          // End of automatics
 	end
       else
 	begin
 	  state <= #1 nxt_state;
 	  count <= #1 nxt_count;
-	  gmii_tx_dv <= #1 nxt_gmii_tx_dv;
+	  gmii_tx_en <= #1 nxt_gmii_tx_en;
 	  gmii_txd   <= #1 nxt_gmii_txd;
 	end // else: !if(reset)
     end // always @ (posedge clk)
