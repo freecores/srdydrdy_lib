@@ -19,6 +19,9 @@ module env_top;
       reset = 0;
       #200;
 
+      repeat (`FIB_ENTRIES)
+	@(posedge clk);
+
       fork
 	driver0.send_packet (1, 2, 20);
 	driver1.send_packet (2, 3, 64);

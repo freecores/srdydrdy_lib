@@ -55,6 +55,7 @@ module concentrator
 	  if (p_drdy)
 	    begin
 	      nxt_p_srdy = 0;
+	      nxt_p_commit = 0;
 	      ip_drdy = 1;
 	      nxt_pkt_code = `PCC_DATA;
 	      nxt_count = 0;
@@ -87,7 +88,12 @@ module concentrator
 	  endcase // case (count)
 	  if ((count == 7) | (ip_code == `PCC_BADEOP) | (ip_code == `PCC_EOP))
 	    begin
-	      if ((ip_code == `PCC_BADEOP) || (pkt_code == `PCC_BADEOP))
+	      if (ip_code == `PCC_EOP)
+		begin
+		  nxt_p_commit = 1;
+		  nxt_p_srdy   = 1;
+		end
+	      else if ((ip_code == `PCC_BADEOP) || (pkt_code == `PCC_BADEOP))
 		begin
 		  nxt_p_abort = 1;
 		end
@@ -103,6 +109,7 @@ module concentrator
 	begin
 	  /*AUTORESET*/
 	  // Beginning of autoreset for uninitialized flops
+	  count <= 3'h0;
 	  p_abort <= 1'h0;
 	  p_commit <= 1'h0;
 	  p_data <= {(1+(`PFW_SZ-1)){1'b0}};
@@ -115,6 +122,7 @@ module concentrator
 	  p_abort  <= #1 nxt_p_abort;
 	  p_srdy   <= #1 nxt_p_srdy;
 	  p_data   <= #1 nxt_p_data;
+	  count    <= #1 nxt_count;
 	end // else: !if(reset)
     end
   

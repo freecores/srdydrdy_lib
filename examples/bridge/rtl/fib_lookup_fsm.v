@@ -47,6 +47,16 @@ module fib_lookup_fsm
 
   // send all results back to their originating port
   assign lout_dst_vld = source_port_mask;
+
+  reg 				  amux;
+
+  always @*
+    begin
+      case (amux)
+	0 : ft_addr = hf_out;
+	1 : ft_addr = init_ctr;
+      endcase // case (amux)
+    end
   
   always @*
     begin
@@ -54,7 +64,7 @@ module fib_lookup_fsm
       nxt_state = state;
       ft_rd_en = 0;
       ft_wr_en = 0;
-      ft_addr = hf_out;
+      amux = 0;
       lout_data = 0;
       lout_srdy = 0;
       lpp_drdy = 0;
@@ -123,9 +133,9 @@ module fib_lookup_fsm
           begin
             nxt_init_ctr = init_ctr + 1;
             ft_wr_en = 1;
-            ft_addr = init_ctr;
+	    amux = 1;
             ft_wdata = 0;
-            if (ft_addr == (`FIB_ENTRIES-1))
+            if (init_ctr == (`FIB_ENTRIES-1))
               nxt_state = ns_idle;
           end
 
