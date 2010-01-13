@@ -33,7 +33,7 @@ module env_top;
 	driver3.send_packet (4, 1, 64);
       join
 
-      #500;
+      #2000;
       $finish;
     end
 

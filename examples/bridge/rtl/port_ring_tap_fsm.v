@@ -21,7 +21,10 @@ module port_ring_tap_fsm
    input               lptx_drdy, 
    input [rdp_sz-1:0]   lri_data,  
    input               lri_srdy,  
-   input               lro_drdy
+   input               lro_drdy,
+
+   output              rarb_req,
+   input               rarb_ack
    );
 
   reg [4:0]            state, nxt_state;
@@ -42,6 +45,8 @@ module port_ring_tap_fsm
              ns_rcopy = 4,
              ns_rsink = 8,
              ns_tdata = 16;
+
+  assign rarb_req = lfli_srdy & lprx_srdy | state[s_tdata];
   
   always @*
     begin
@@ -52,11 +57,12 @@ module port_ring_tap_fsm
       lptx_srdy = 0;
       lri_drdy  = 0;
       lro_srdy  = 0;
+      nxt_state = state;
       
       case (1'b1)
         state[s_idle] :
           begin
-            if (lfli_srdy)
+            if (lfli_srdy & lprx_srdy & rarb_ack)
               begin
 		if (lfli_data != 0)
 		  begin

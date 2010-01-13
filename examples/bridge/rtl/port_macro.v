@@ -13,10 +13,12 @@ module port_macro
    input                gmii_rx_dv,             // To rx_gigmac of sd_rx_gigmac.v
    input [7:0]          gmii_rxd,               // To rx_gigmac of sd_rx_gigmac.v
    input                p2f_drdy,               // To pkt_parse of pkt_parse.v
+   input                rarb_ack,               // To ring_tap of port_ring_tap.v
    input                ri_srdy,                // To ring_tap of port_ring_tap.v
    input                ro_drdy,                // To ring_tap of port_ring_tap.v
    // End of automatics
 
+   output               rarb_req,
    output		fli_drdy,		// From ring_tap of port_ring_tap.v
    output		gmii_tx_en,		// From tx_gmii of sd_tx_gigmac.v
    output [7:0]		gmii_txd,		// From tx_gmii of sd_tx_gigmac.v
@@ -54,6 +56,7 @@ module port_macro
   wire                  prx_srdy;               // From fifo_rx of sd_fifo_b.v
   wire                  ptx_drdy;               // From dst of distributor.v
   wire                  ptx_srdy;               // From fifo_tx of sd_fifo_b.v
+  wire                  rarb_req;               // From ring_tap of port_ring_tap.v
   wire                  rttx_drdy;              // From oflow of egr_oflow.v
   wire                  rttx_srdy;              // From ring_tap of port_ring_tap.v
   wire [1:0]            rxc_rxg_code;           // From rx_gigmac of sd_rx_gigmac.v
@@ -228,6 +231,7 @@ module port_macro
      .ptx_srdy                          (rttx_srdy),             // Templated
      .ptx_data                          (rttx_data),             // Templated
      .fli_drdy                          (fli_drdy),
+     .rarb_req                          (rarb_req),
      // Inputs
      .clk                               (clk),
      .reset                             (reset),
@@ -238,7 +242,8 @@ module port_macro
      .ro_drdy                           (ro_drdy),
      .ptx_drdy                          (rttx_drdy),             // Templated
      .fli_srdy                          (fli_srdy),
-     .fli_data                          (fli_data[`NUM_PORTS-1:0]));
+     .fli_data                          (fli_data[`NUM_PORTS-1:0]),
+     .rarb_ack                          (rarb_ack));
 
 /* egr_oflow AUTO_TEMPLATE
  (

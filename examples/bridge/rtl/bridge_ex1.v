@@ -55,6 +55,8 @@ module bridge_ex1
   wire [`PAR_DATA_SZ-1:0] ppi_data;             // From fib_arb of sd_rrslow.v
   wire                  ppi_drdy;               // From fib_lookup of fib_lookup.v
   wire                  ppi_srdy;               // From fib_arb of sd_rrslow.v
+  wire [`NUM_PORTS-1:0] rarb_ack;               // From ring_arb of ring_arb.v
+  wire [3:0]            rarb_req;               // From p0 of port_macro.v, ...
   wire                  ri_drdy_0;              // From p0 of port_macro.v
   wire                  ri_drdy_1;              // From p1 of port_macro.v
   wire                  ri_drdy_2;              // From p2 of port_macro.v
@@ -70,6 +72,7 @@ module bridge_ex1
    .clk				(clk),
    .reset			(reset),
    .ri_data                     (ri_data_@),
+   .rarb_\(.*\)                 (rarb_\1[@]),
    .ro_\(.*\)        (ri_\1_@"(% (+ 1 @) 4)"),
    .p2f_srdy				(p2f_srdy[@]),
    .p2f_drdy				(p2f_drdy[@]),
@@ -83,6 +86,7 @@ module bridge_ex1
     (/*AUTOINST*/
      // Outputs
      .ro_data                           (ri_data_1),             // Templated
+     .rarb_req                          (rarb_req[0]),           // Templated
      .fli_drdy                          (flo_drdy[0]),           // Templated
      .gmii_tx_en                        (gmii_tx_en_0),          // Templated
      .gmii_txd                          (gmii_txd_0[7:0]),       // Templated
@@ -100,6 +104,7 @@ module bridge_ex1
      .gmii_rx_dv                        (gmii_rx_dv_0),          // Templated
      .gmii_rxd                          (gmii_rxd_0[7:0]),       // Templated
      .p2f_drdy                          (p2f_drdy[0]),           // Templated
+     .rarb_ack                          (rarb_ack[0]),           // Templated
      .ri_srdy                           (ri_srdy_0),             // Templated
      .ro_drdy                           (ri_drdy_1));             // Templated
 
@@ -107,6 +112,7 @@ module bridge_ex1
     (/*AUTOINST*/
      // Outputs
      .ro_data                           (ri_data_2),             // Templated
+     .rarb_req                          (rarb_req[1]),           // Templated
      .fli_drdy                          (flo_drdy[1]),           // Templated
      .gmii_tx_en                        (gmii_tx_en_1),          // Templated
      .gmii_txd                          (gmii_txd_1[7:0]),       // Templated
@@ -124,6 +130,7 @@ module bridge_ex1
      .gmii_rx_dv                        (gmii_rx_dv_1),          // Templated
      .gmii_rxd                          (gmii_rxd_1[7:0]),       // Templated
      .p2f_drdy                          (p2f_drdy[1]),           // Templated
+     .rarb_ack                          (rarb_ack[1]),           // Templated
      .ri_srdy                           (ri_srdy_1),             // Templated
      .ro_drdy                           (ri_drdy_2));             // Templated
 
@@ -131,6 +138,7 @@ module bridge_ex1
     (/*AUTOINST*/
      // Outputs
      .ro_data                           (ri_data_3),             // Templated
+     .rarb_req                          (rarb_req[2]),           // Templated
      .fli_drdy                          (flo_drdy[2]),           // Templated
      .gmii_tx_en                        (gmii_tx_en_2),          // Templated
      .gmii_txd                          (gmii_txd_2[7:0]),       // Templated
@@ -148,6 +156,7 @@ module bridge_ex1
      .gmii_rx_dv                        (gmii_rx_dv_2),          // Templated
      .gmii_rxd                          (gmii_rxd_2[7:0]),       // Templated
      .p2f_drdy                          (p2f_drdy[2]),           // Templated
+     .rarb_ack                          (rarb_ack[2]),           // Templated
      .ri_srdy                           (ri_srdy_2),             // Templated
      .ro_drdy                           (ri_drdy_3));             // Templated
 
@@ -155,6 +164,7 @@ module bridge_ex1
     (/*AUTOINST*/
      // Outputs
      .ro_data                           (ri_data_0),             // Templated
+     .rarb_req                          (rarb_req[3]),           // Templated
      .fli_drdy                          (flo_drdy[3]),           // Templated
      .gmii_tx_en                        (gmii_tx_en_3),          // Templated
      .gmii_txd                          (gmii_txd_3[7:0]),       // Templated
@@ -172,6 +182,7 @@ module bridge_ex1
      .gmii_rx_dv                        (gmii_rx_dv_3),          // Templated
      .gmii_rxd                          (gmii_rxd_3[7:0]),       // Templated
      .p2f_drdy                          (p2f_drdy[3]),           // Templated
+     .rarb_ack                          (rarb_ack[3]),           // Templated
      .ri_srdy                           (ri_srdy_3),             // Templated
      .ro_drdy                           (ri_drdy_0));             // Templated
 
@@ -210,6 +221,15 @@ module bridge_ex1
      .ppi_data                          (ppi_data[`PAR_DATA_SZ-1:0]),
      .flo_drdy                          (flo_drdy[`NUM_PORTS-1:0]),
      .ppi_srdy                          (ppi_srdy));
+
+  ring_arb ring_arb
+    (/*AUTOINST*/
+     // Outputs
+     .rarb_ack                          (rarb_ack[`NUM_PORTS-1:0]),
+     // Inputs
+     .clk                               (clk),
+     .reset                             (reset),
+     .rarb_req                          (rarb_req[`NUM_PORTS-1:0]));
 
 endmodule // bridge_ex1
 // Local Variables:

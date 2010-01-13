@@ -6,6 +6,7 @@ gmii_monitor.v
 
 ../rtl/basic_hashfunc.v
 ../rtl/bridge_ex1.v
+../rtl/ring_arb.v
 ../rtl/concentrator.v
 ../rtl/distributor.v
 ../rtl/egr_oflow.v
