@@ -21,21 +21,8 @@ module env_top;
       reset = 1;
       #200;
       reset = 0;
-      #200;
-
-      repeat (`FIB_ENTRIES)
-	@(posedge clk);
-
-      fork
-	driver0.send_packet (1, 2, 20);
-	driver1.send_packet (2, 3, 64);
-	driver2.send_packet (3, 4, 64);
-	driver3.send_packet (4, 1, 64);
-      join
-
-      #2000;
-      $finish;
-    end
+    end // initial begin
+  
 
   /*AUTOWIRE*/
   // Beginning of automatic wires (for undeclared instantiated-module outputs)

@@ -53,6 +53,7 @@ module sd_fifo_tail_b
      output reg [asz-1:0]   com_rdptr,
      input  [asz-1:0]       wrptr,
      output reg           mem_re,
+     input                mem_we,
 
      output reg [asz:0]   usage,
      
@@ -121,7 +122,40 @@ module sd_fifo_tail_b
         usage = tmp_usage[asz-1:0];
       else
         usage = fifo_size - (cur_rdptr[asz-1:0] - wrptr[asz-1:0]);  
+    end // always @ *
+
+/* -----\/----- EXCLUDED -----\/-----
+  // alternate usage calc
+  reg [asz-1:0] prev_wr;
+  reg [asz:0] usage2, nxt_usage2;
+  wire        lcl_wr_en;
+  //assign lcl_wr_en = (prev_wr0 != wrptr[0]);
+  
+  always @(posedge clk)
+    begin
+      if (reset)
+        begin
+          /-*AUTORESET*-/
+          // Beginning of autoreset for uninitialized flops
+          usage2 <= {(1+(asz)){1'b0}};
+          // End of automatics
+        end
+      else
+        begin
+          usage2   <= #1 nxt_usage2;
+        end
     end
+  
+  always @*
+    begin
+      if (mem_re & !mem_we)
+        nxt_usage2 = usage2 - 1;
+      else if (!mem_re & mem_we)
+        nxt_usage2 = usage2 + 1;
+      else
+        nxt_usage2 = usage2;
+    end
+ -----/\----- EXCLUDED -----/\----- */
 
   always @(posedge clk)
     begin

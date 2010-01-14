@@ -1,11 +1,14 @@
 #!/bin/bash
 
+TESTNAME=$1
+shift
+
 which vcs &> /dev/null
 if [ "$?" == "-1" ]; then
-iverilog -f bridge.vf
+iverilog -f bridge.vf tests/$TESTNAME.v $*
 ./a.out
 else
-vcs -full64 +v2k -R -I -f bridge.vf
+vcs -full64 +v2k -R -I -f bridge.vf tests/$TESTNAME.v $*
 #vcd2vpd env_top.vcd env_top.vpd
 fi
 

@@ -1,5 +1,5 @@
 module egr_oflow
-  #(parameter drop_thr=`TX_FIFO_DEPTH-10)
+  #(parameter drop_thr=`TX_FIFO_DEPTH-128)
   (
    input        clk,
    input        reset,
@@ -60,7 +60,7 @@ module egr_oflow
 		p_commit = 1;
 		nxt_state = s_idle;
 	      end
-	    else if (tx_usage >= drop_thr)
+	    else if (!p_drdy | (tx_usage >= drop_thr))
 	      begin
 		c_drdy = 1;
 		nxt_state = s_idle;

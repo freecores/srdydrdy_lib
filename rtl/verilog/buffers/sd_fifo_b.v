@@ -103,6 +103,7 @@ module sd_fifo_b
      .reset				(reset),
      .enable				(1'b1),
      .bound_low				(0),
+     .mem_we                            (mem_we),
      .bound_high			(bound_high),
      .wrptr				(com_wrptr),
      .p_drdy				(p_drdy),

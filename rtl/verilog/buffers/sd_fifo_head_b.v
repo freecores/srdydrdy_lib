@@ -66,7 +66,7 @@ module sd_fifo_head_b
         wrptr_p1 = cur_wrptr + 1;
       
       empty = (cur_wrptr == rdptr) & !full;
-      nxt_full = (wrptr_p1 == rdptr);
+      nxt_full = ((wrptr_p1 == rdptr) | (full & (cur_wrptr == rdptr)));
 
       if ((commit == 1) && c_abort)
         begin

@@ -38,8 +38,8 @@
 `define PFW_SZ 69
 
 // Port FIFO sizes
-`define RX_FIFO_DEPTH 64
-`define TX_FIFO_DEPTH 256
+`define RX_FIFO_DEPTH 256
+`define TX_FIFO_DEPTH 1024
 
 `define RX_USG_SZ     $clog2(`RX_FIFO_DEPTH)+1
 `define TX_USG_SZ     $clog2(`TX_FIFO_DEPTH)+1

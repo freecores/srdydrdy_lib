@@ -39,12 +39,14 @@ module port_ring_tap_fsm
              s_rfwd = 1,
              s_rcopy = 2,
              s_rsink = 3,
-             s_tdata = 4;
+             s_tdata = 4,
+              s_tdrop = 5;
   localparam ns_idle = 1,
              ns_rfwd = 2,
              ns_rcopy = 4,
              ns_rsink = 8,
-             ns_tdata = 16;
+             ns_tdata = 16,
+    ns_tdrop = 32;
 
   assign rarb_req = lfli_srdy & lprx_srdy | state[s_tdata];
   
@@ -77,7 +79,10 @@ module port_ring_tap_fsm
 		      end
 		  end
 		else
-		  lfli_drdy = 1;
+                  begin
+		    lfli_drdy = 1;
+                    nxt_state = ns_tdrop;
+                  end
               end
             else if (lri_srdy)
               begin
@@ -130,6 +135,19 @@ module port_ring_tap_fsm
 		  nxt_state = ns_idle;
 	      end
 	  end // case: state[s_tdata]
+
+        // received lookup from FIB with zero port index; drop
+        // the packet by reading out
+        state[s_tdrop] :
+          begin
+            lprx_drdy = 1;
+            if (lprx_srdy)
+              begin
+ 		if ((lprx_data[`PRW_PCC] == `PCC_EOP) |
+		    (lprx_data[`PRW_PCC] == `PCC_BADEOP))
+		  nxt_state = ns_idle;
+              end
+          end
 
 	// data on ring is for our port as well as further ports
 	// copy ring data to our TX buffer as well as on the ring

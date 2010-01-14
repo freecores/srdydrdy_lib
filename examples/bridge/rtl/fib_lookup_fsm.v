@@ -102,7 +102,7 @@ module fib_lookup_fsm
               end
             else
               begin
-                lout_data = 1 << ft_rdata[`FIB_PORT];
+                lout_data = (1 << ft_rdata[`FIB_PORT]) & ~source_port_mask;
               end
             
             lout_srdy = 1;
