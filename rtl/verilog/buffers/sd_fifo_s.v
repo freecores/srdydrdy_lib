@@ -37,7 +37,7 @@ module sd_fifo_s
      input       p_reset,
      output      p_srdy,
      input       p_drdy,
-     output reg [width-1:0] p_data
+     output  [width-1:0] p_data
      );
 
   localparam asz = $clog2(depth);
@@ -48,14 +48,25 @@ module sd_fifo_s
   wire [asz:0] 		rdptr_tail, rdptr_tail_sync;
   wire			wr_en;
   wire [asz:0] 		wrptr_head, wrptr_head_sync;
-  reg 			dly_rd_en;
   wire [asz-1:0] 	rd_addr, wr_addr;
 
+/* -----\/----- EXCLUDED -----\/-----
   always @(posedge c_clk)
     if (wr_en)
       mem[wr_addr] <= `SDLIB_DELAY c_data;
 
   assign mem_rddata = mem[rd_addr];
+ -----/\----- EXCLUDED -----/\----- */
+  behave2p_mem #(width, depth) mem2p
+    (.d_out (p_data),
+     .wr_en (wr_en),
+     .rd_en (rd_en),
+     .wr_clk (c_clk),
+     .wr_addr (wr_addr),
+     .rd_clk  (p_clk),
+     .rd_addr (rd_addr),
+     .d_in    (c_data));
+
 
   sd_fifo_head_s #(depth, async) head
     (
@@ -83,11 +94,13 @@ module sd_fifo_s
      .wrptr_head			(wrptr_head_sync),
      .p_drdy				(p_drdy));
 
+/* -----\/----- EXCLUDED -----\/-----
   always @(posedge p_clk)
     begin
       if (rd_en)
 	p_data <= `SDLIB_DELAY mem_rddata;
     end
+ -----/\----- EXCLUDED -----/\----- */
 
   generate
     if (async)

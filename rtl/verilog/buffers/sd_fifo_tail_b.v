@@ -228,7 +228,7 @@ module sd_fifo_tail_b
 
 	always @*
 	  begin
-	    if (p_commit)
+	    if (p_commit & p_srdy & p_drdy)
 	      nxt_com_rdptr = p_rdaddr;
 	    else
 	      nxt_com_rdptr = com_rdptr;

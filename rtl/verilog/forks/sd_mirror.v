@@ -36,7 +36,8 @@ module sd_mirror
    input        reset,
 
    input              c_srdy,
-   output reg         c_drdy,
+   //output reg         c_drdy,
+   output             c_drdy,
    input [width-1:0]  c_data,
    input [mirror-1:0] c_dst_vld,
 
@@ -52,39 +53,29 @@ module sd_mirror
   always @(posedge clk)
     if (load)
       p_data <= `SDLIB_DELAY c_data;
-  
+
+  assign c_drdy = (p_srdy == 0);
+
   always @*
     begin
       nxt_p_srdy = p_srdy;
-      nxt_state    = state;
-      c_drdy       = 0;
       load         = 0;
       
-      case (state)
-	0 :
+      if (p_srdy == {mirror{1'b0}})
           begin
-            c_drdy = 1'b1;            
 	    if (c_srdy)
 	      begin
                 if (c_dst_vld == {mirror{1'b0}})
                   nxt_p_srdy = {mirror{1'b1}};
                 else
 	          nxt_p_srdy = c_dst_vld;
-	        nxt_state    = 1;
                 load         = 1;
 	      end
           end
-
-	1 :
-	  begin
-	    nxt_p_srdy = p_srdy & ~p_drdy;
-	    
-	    if (p_srdy == {mirror{1'b0}})
-	      begin
-		nxt_state = 1'b0;
-	      end
-	  end
-      endcase
+      else
+	begin
+	  nxt_p_srdy = p_srdy & ~p_drdy;
+	end
     end
 
   always @(`SDLIB_CLOCKING)

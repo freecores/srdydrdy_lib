@@ -82,6 +82,8 @@ module bench_fifo_s;
       #100;
       reset = 0;
 
+      gen.rep_count = 1000;
+
       // burst normal data for 20 cycles
       repeat (20) @(posedge clk);
 

@@ -3,12 +3,11 @@
 TESTNAME=$1
 shift
 
-which vcs &> /dev/null
-if [ "$?" == "-1" ]; then
-iverilog -f bridge.vf tests/$TESTNAME.v $*
-./a.out
+which iverilog &> /dev/null
+if [ "$?" == "0" ]; then
+ iverilog -f bridge.vf tests/$TESTNAME.v $*
+ ./a.out
 else
-vcs -full64 +v2k -R -I -f bridge.vf tests/$TESTNAME.v $*
-#vcd2vpd env_top.vcd env_top.vpd
+ vcs -full64 +v2k -R -I -f bridge.vf tests/$TESTNAME.v $*
 fi
 
