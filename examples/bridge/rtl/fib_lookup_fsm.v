@@ -74,19 +74,22 @@ module fib_lookup_fsm
         state[s_idle] :
           begin
             // DA lookup
-            if (lpp_data[`PAR_MACDA] & `MULTICAST)
+            if (lpp_srdy)
               begin
-                // flood the packet, don't bother to do DA lookup
-                lout_data = ~source_port_mask;
-                lout_srdy = 1;
-                if (lout_drdy)
-                  nxt_state = ns_sa_lookup;
-              end
-            else if (lpp_srdy)
-              begin
-                hf_in = lpp_data[`PAR_MACDA];
-                ft_rd_en = 1;
-                nxt_state = ns_da_lookup;
+                if (lpp_data[`PAR_MACDA] & `MULTICAST)
+                  begin
+                    // flood the packet, don't bother to do DA lookup
+                    lout_data = ~source_port_mask;
+                    lout_srdy = 1;
+                    if (lout_drdy)
+                      nxt_state = ns_sa_lookup;
+                  end
+                else
+                  begin
+                    hf_in = lpp_data[`PAR_MACDA];
+                    ft_rd_en = 1;
+                    nxt_state = ns_da_lookup;
+                  end // else: !if(lpp_data[`PAR_MACDA] & `MULTICAST)
               end
           end
 
