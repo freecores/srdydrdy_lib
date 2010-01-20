@@ -29,7 +29,8 @@
 module sd_fifo_head_b
   #(parameter depth=16,
     parameter commit=0,
-    parameter asz=$clog2(depth)
+    parameter asz=$clog2(depth),
+    parameter usz=$clog2(depth+1)
   )
   (
    input       clk,
@@ -46,6 +47,7 @@ module sd_fifo_head_b
    input [asz-1:0]      rdptr,
    output reg [asz-1:0] cur_wrptr,
    output reg [asz-1:0] com_wrptr,
+   output reg [usz-1:0] c_usage,
    output reg         mem_we
    );
   
@@ -54,6 +56,10 @@ module sd_fifo_head_b
   reg 			empty;
   reg                   full, nxt_full;
   reg [asz-1:0]         nxt_com_wrptr;
+  reg [usz:0] 		tmp_usage;
+  wire [usz-1:0] 	fifo_size;
+
+  assign fifo_size = bound_high - bound_low + 1;
 
   assign 		c_drdy = !nxt_full & enable;
   
@@ -93,6 +99,12 @@ module sd_fifo_head_b
 	  nxt_wrptr = cur_wrptr;
           mem_we = 0;
         end
+
+      tmp_usage = cur_wrptr[asz-1:0] - rdptr[asz-1:0];
+      if (~tmp_usage[usz])
+        c_usage = tmp_usage[usz-1:0];
+      else
+        c_usage = fifo_size - (rdptr[asz-1:0] - cur_wrptr[asz-1:0]);  
     end
 
   always @(posedge clk)

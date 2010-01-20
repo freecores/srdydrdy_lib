@@ -40,7 +40,9 @@ module sd_fifo_tail_b
   #(parameter width=8,
     parameter depth=16,
     parameter commit=0,
-    parameter asz=$clog2(depth))
+    parameter asz=$clog2(depth),
+    parameter usz=$clog2(depth+1)
+    )
     (
      input       clk,
      input       reset,
@@ -55,7 +57,7 @@ module sd_fifo_tail_b
      output reg           mem_re,
      input                mem_we,
 
-     output reg [asz:0]   usage,
+     output reg [usz:0]   p_usage,
      
      output               p_srdy,
      input                p_drdy,
@@ -74,8 +76,8 @@ module sd_fifo_tail_b
   reg [width-1:0]       hold_a, hold_b;
   reg                   valid_a, valid_b;
   reg                   prev_re;
-  reg [asz:0]           tmp_usage;
-  reg [asz:0]           fifo_size;
+  reg [usz:0]           tmp_usage;
+  reg [usz:0]           fifo_size;
   wire 			rbuf1_drdy;
   wire 			ip_srdy, ip_drdy;
   wire [width-1:0] 	ip_data;
@@ -118,10 +120,10 @@ module sd_fifo_tail_b
 
       fifo_size = (bound_high - bound_low + 1);
       tmp_usage = wrptr[asz-1:0] - cur_rdptr[asz-1:0];
-      if (~tmp_usage[asz])
-        usage = tmp_usage[asz-1:0];
+      if (~tmp_usage[usz])
+        p_usage = tmp_usage[usz-1:0];
       else
-        usage = fifo_size - (cur_rdptr[asz-1:0] - wrptr[asz-1:0]);  
+        p_usage = fifo_size - (cur_rdptr[asz-1:0] - wrptr[asz-1:0]);  
     end // always @ *
 
 /* -----\/----- EXCLUDED -----\/-----

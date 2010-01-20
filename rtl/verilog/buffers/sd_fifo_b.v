@@ -43,7 +43,8 @@ module sd_fifo_b
      input       p_abort,
      output [width-1:0] p_data,
 
-     output [asz:0] usage
+     output [asz:0] p_usage,
+     output [asz:0] c_usage
      );
 
   wire [asz-1:0]	com_rdptr;		// From tail of sd_fifo_tail_b.v
@@ -65,6 +66,7 @@ module sd_fifo_b
      .cur_wrptr				(cur_wrptr[asz-1:0]),
      .com_wrptr				(com_wrptr[asz-1:0]),
      .mem_we				(mem_we),
+     .c_usage                           (c_usage),
      // Inputs
      .clk				(clk),
      .reset				(reset),
@@ -95,7 +97,7 @@ module sd_fifo_b
      .cur_rdptr				(cur_rdptr[asz-1:0]),
      .com_rdptr				(com_rdptr[asz-1:0]),
      .mem_re				(mem_re),
-     .usage				(usage[asz:0]),
+     .p_usage				(p_usage[asz:0]),
      .p_srdy				(p_srdy),
      .p_data				(p_data[width-1:0]),
      // Inputs

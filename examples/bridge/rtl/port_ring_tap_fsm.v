@@ -27,10 +27,9 @@ module port_ring_tap_fsm
    input               rarb_ack
    );
 
-  reg [4:0]            state, nxt_state;
+  reg [5:0]            state, nxt_state;
 
   wire [`NUM_PORTS-1:0] port_mask;
-  //reg [`NUM_PORTS-1:0]  pe_vec, nxt_pe_vec;
   wire [`NUM_PORTS-1:0] nxt_pe_vec = lri_data[`PRW_DATA] & ~port_mask;
 
   assign port_mask = 1 << portnum;

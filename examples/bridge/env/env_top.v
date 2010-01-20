@@ -15,7 +15,7 @@ module env_top;
 `ifdef VCS
       $vcdpluson;
 `else
-      $dumpfile ("env_top.vcd");
+      $dumpfile ("env_top.lxt");
       $dumpvars;
 `endif
       reset = 1;
