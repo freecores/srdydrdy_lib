@@ -81,7 +81,11 @@ module sd_scoreboard_fsm
       
       if (state[s_idle])
         begin
-          if (ip_srdy & (ip_req_type==1))
+	  if (state[s_read] & !ic_drdy)
+	    begin
+	      // output is busy, stall
+	    end
+          else if (ip_srdy & (ip_req_type==1))
             begin
               if ((use_mask==0) | (ip_mask=={width{1'b1}}))
                 begin
@@ -96,7 +100,7 @@ module sd_scoreboard_fsm
                   nxt_state[s_idle]  = 0;
                 end
             end
-          else if (ip_srdy & (ip_req_type==0) & (!state[s_read] | ic_drdy))
+          else if (ip_srdy & (ip_req_type==0))
             begin
               rd_en = 1;
               nxt_state[s_read] = 1;

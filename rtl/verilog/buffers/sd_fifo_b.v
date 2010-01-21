@@ -25,7 +25,8 @@ module sd_fifo_b
     parameter depth=256,
     parameter rd_commit=0,
     parameter wr_commit=0,
-    parameter asz=$clog2(depth)
+    parameter asz=$clog2(depth),
+    parameter usz=$clog2(depth+1)
     )
     (
      input       clk,
@@ -43,8 +44,8 @@ module sd_fifo_b
      input       p_abort,
      output [width-1:0] p_data,
 
-     output [asz:0] p_usage,
-     output [asz:0] c_usage
+     output [usz-1:0] p_usage,
+     output [usz-1:0] c_usage
      );
 
   wire [asz-1:0]	com_rdptr;		// From tail of sd_fifo_tail_b.v
@@ -54,7 +55,6 @@ module sd_fifo_b
   wire [width-1:0]	mem_rd_data;
   wire			mem_re;			// From tail of sd_fifo_tail_b.v
   wire			mem_we;			// From head of sd_fifo_head_b.v
-  wire [asz:0]		usage;			// From tail of sd_fifo_tail_b.v
   wire [asz-1:0] 	bound_high;
 
   assign bound_high = depth-1;

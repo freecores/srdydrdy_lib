@@ -57,7 +57,7 @@ module sd_fifo_tail_b
      output reg           mem_re,
      input                mem_we,
 
-     output reg [usz:0]   p_usage,
+     output reg [usz-1:0] p_usage,
      
      output               p_srdy,
      input                p_drdy,
@@ -105,8 +105,6 @@ module sd_fifo_tail_b
 	  nxt_cur_rdptr = com_rdptr;
 	  mem_re = 0;
 	end
-//      else if (enable & !empty & (!valid_a | (!prev_re & !valid_b) | 
-//                             (valid_a & valid_b & p_drdy)))
       else if (enable & !empty & ip_drdy)
         begin
 	  nxt_cur_rdptr = cur_rdptr_p1;
@@ -125,39 +123,6 @@ module sd_fifo_tail_b
       else
         p_usage = fifo_size - (cur_rdptr[asz-1:0] - wrptr[asz-1:0]);  
     end // always @ *
-
-/* -----\/----- EXCLUDED -----\/-----
-  // alternate usage calc
-  reg [asz-1:0] prev_wr;
-  reg [asz:0] usage2, nxt_usage2;
-  wire        lcl_wr_en;
-  //assign lcl_wr_en = (prev_wr0 != wrptr[0]);
-  
-  always @(posedge clk)
-    begin
-      if (reset)
-        begin
-          /-*AUTORESET*-/
-          // Beginning of autoreset for uninitialized flops
-          usage2 <= {(1+(asz)){1'b0}};
-          // End of automatics
-        end
-      else
-        begin
-          usage2   <= #1 nxt_usage2;
-        end
-    end
-  
-  always @*
-    begin
-      if (mem_re & !mem_we)
-        nxt_usage2 = usage2 - 1;
-      else if (!mem_re & mem_we)
-        nxt_usage2 = usage2 + 1;
-      else
-        nxt_usage2 = usage2;
-    end
- -----/\----- EXCLUDED -----/\----- */
 
   always @(posedge clk)
     begin

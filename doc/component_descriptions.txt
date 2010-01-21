@@ -107,9 +107,31 @@ Validation note:  modes 1 and 2 have not been verified to date.
 
 4.0 Utility
 
-This section is currently empty, but is intended for blocks which do not fit
-into one of the above categories.  Utility blocks could be items like a switch
-fabric, packet ring, or a scoreboard.
+This is intended for blocks which do not fit into one of the above categories.  
+Utility blocks could be items like a switch fabric, packet ring, or a scoreboard.
+
+4.1 sd_ring_node
+
+This is a building block for a unidirectional ring.  Data is placed on the ring
+using the consumer interface and is removed on the producer interface.  sd_ring_node
+supports only point-to-point single-transaction processing (single transaction meaning
+that subsequent requests from the same source are treated as independent, and other
+requests from other nodes may be interleaved at the destination).
+
+4.2 sd_scoreboard
+
+This implements a "scoreboard", or centralized repository of information about a number
+of items.  The scoreboard has a single consumer and producer interface.  The user
+is expected to use a pipeline join block (such as sd_rrslow) to serialize requests.
+
+The scoreboard has a transaction id that it carries with each read request that can be
+used to steer the results back to the requestor.  For example, the "p_grant" output from
+rrslow can be connected to the c_txid input, and the p_txid output can be connected to
+the c_dst_vld input of sd_mirror, giving multi-read/multi-write capability.
+
+The scoreboard supports both read and write, where write can also use a mask to implement
+partial updates.  If the mask is set to anything other than all 1's, the scoreboard performs
+a read-modify-write to change only the unmasked portion of the data.
 
 5.0 Memory
 
