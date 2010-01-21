@@ -35,7 +35,9 @@ module sample_test;
       #10000;
 
       get_packet_count (pcount);
-      check_expected (9, pcount);
+      //check_expected (9, pcount);
+      if (pcount <= 1900)
+        $display ("ERROR -- Should receive at least 1900 packets");
       $display ("TEST: Received %d packets", pcount);
       $finish;
     end

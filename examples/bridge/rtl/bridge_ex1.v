@@ -50,11 +50,11 @@ module bridge_ex1
   wire [`PAR_DATA_SZ-1:0] p2f_data_1;           // From p1 of port_macro.v
   wire [`PAR_DATA_SZ-1:0] p2f_data_2;           // From p2 of port_macro.v
   wire [`PAR_DATA_SZ-1:0] p2f_data_3;           // From p3 of port_macro.v
-  wire [`NUM_PORTS-1:0] p2f_drdy;               // From fib_arb of sd_rrslow.v
+  wire [`NUM_PORTS-1:0] p2f_drdy;               // From fib_arb of sd_rrmux.v
   wire [3:0]            p2f_srdy;               // From p0 of port_macro.v, ...
-  wire [`PAR_DATA_SZ-1:0] ppi_data;             // From fib_arb of sd_rrslow.v
+  wire [`PAR_DATA_SZ-1:0] ppi_data;             // From fib_arb of sd_rrmux.v
   wire                  ppi_drdy;               // From fib_lookup of fib_lookup.v
-  wire                  ppi_srdy;               // From fib_arb of sd_rrslow.v
+  wire                  ppi_srdy;               // From fib_arb of sd_rrmux.v
   wire [`NUM_PORTS-1:0] rarb_ack;               // From ring_arb of ring_arb.v
   wire [3:0]            rarb_req;               // From p0 of port_macro.v, ...
   wire                  ri_drdy_0;              // From p0 of port_macro.v
@@ -186,8 +186,9 @@ module bridge_ex1
      .ri_srdy                           (ri_srdy_3),             // Templated
      .ro_drdy                           (ri_drdy_0));             // Templated
 
-/*  sd_rrslow AUTO_TEMPLATE
+/*  sd_rrmux AUTO_TEMPLATE
  (
+ .p_grant (),
  .p_data  (ppi_data[`PAR_DATA_SZ-1:0]),
  .c_data  ({p2f_data_3,p2f_data_2,p2f_data_1,p2f_data_0}),
  .c_srdy  (p2f_srdy[`NUM_PORTS-1:0]),
@@ -196,11 +197,17 @@ module bridge_ex1
  .p_\(.*\)   (ppi_\1[]),
  );
  */
-  sd_rrslow #(`PAR_DATA_SZ,`NUM_PORTS,0) fib_arb
+  sd_rrmux #(
+              // Parameters
+              .width                    (`PAR_DATA_SZ),
+              .inputs                   (`NUM_PORTS),
+              .mode                     (0),
+              .fast_arb                 (1)) fib_arb
     (/*AUTOINST*/
      // Outputs
      .c_drdy                            (p2f_drdy[`NUM_PORTS-1:0]), // Templated
      .p_data                            (ppi_data[`PAR_DATA_SZ-1:0]), // Templated
+     .p_grant                           (),                      // Templated
      .p_srdy                            (ppi_srdy),              // Templated
      // Inputs
      .clk                               (clk),

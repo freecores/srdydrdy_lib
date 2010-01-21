@@ -21,7 +21,7 @@ module sample_test;
       #2000;
 
       get_packet_count (pcount);
-      check_expected (9, pcount);
+      check_expected (6, pcount);
       $display ("TEST: Received %d packets", pcount);
       $finish;
     end

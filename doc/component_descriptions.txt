@@ -90,9 +90,9 @@ outputs.
 Note that sd_mirror is low-throughput, as it waits until all downstream blocks have
 acknoweldged before accepting another word.
 
-3.2 sd_rrslow
+3.2 sd_rrmux
 
-This block implements a "slow" round-robin arbiter/mux.  It has multiple modes
+This block implements a round-robin arbiter/mux.  It has multiple modes
 with options on whether a grant implies that input will "hold" the grant, or
 whether it moves on.
 
@@ -102,6 +102,8 @@ so once the interface begins transmitting it can transmit until it deasserts srd
 Mode 2 is for multiplexing packets, or other data where multiple words need to be
 kept together.  Once srdy is asserted, the block will not switch inputs until the
 end pattern is seen, even if srdy is deasserted.
+
+Also has a slow (1 cycle per input) and fast (immediate) arb mode.
 
 Validation note:  modes 1 and 2 have not been verified to date.
 
