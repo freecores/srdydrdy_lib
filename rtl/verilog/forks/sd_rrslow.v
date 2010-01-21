@@ -1,7 +1,7 @@
 //----------------------------------------------------------------------
-//  Srdy/drdy "slow" round-robin arbiter
+// Srdy/drdy round-robin arbiter
 //
-//  Asserts drdy for an input and then moves to the next input.
+// Asserts drdy for an input and then moves to the next input.
 //
 // This component supports multiple round-robin modes:
 //
@@ -17,6 +17,17 @@
 //          matches a particular "end pattern".  The trigger pattern
 //          is when (c_data & eod_mask) == eod_pattern.  Once
 //          trigger pattern is seen, begin hunting for new input.
+//
+// This component also supports two arbitration modes: slow and fast.
+// slow rotates the grant from requestor to requestor cycle by cycle,
+// so each requestor gets serviced at most once every #inputs cycles.
+// This can be useful for producing a TDM-type interface, however
+// requestors may be delayed waiting for the grant to come around even
+// if there are no other requestors.
+//
+// Fast mode immediately grants the highest-priority requestor, however
+// it is drdy-noncompliant (drdy will not be asserted until srdy is
+// asserted).
 //
 // Naming convention: c = consumer, p = producer, i = internal interface
 //----------------------------------------------------------------------
@@ -36,12 +47,13 @@
  `define SDLIB_DELAY #1 
 `endif
 
-module sd_rrslow
+module sd_rrmux
   #(parameter width=8,
     parameter inputs=2,
     parameter mode=0,
     parameter eod_pattern=0,
-    parameter eod_mask=0)
+    parameter eod_mask=0,
+    parameter fast_arb=0)
   (
    input               clk,
    input               reset,
@@ -69,6 +81,22 @@ module sd_rrslow
 
   assign c_drdy = rr_state & {inputs{p_drdy}};
   assign p_grant = rr_state;
+
+  function [inputs-1:0] nxt_grant;
+    input [inputs-1:0] cur_grant;
+    input [inputs-1:0] cur_req;
+    reg [inputs-1:0]   msk_req;
+    reg [inputs-1:0]   tmp_grant;
+    begin
+      msk_req = cur_req & ~((cur_grant - 1) | cur_grant);
+      tmp_grant = msk_req & (~msk_req + 1);
+
+      if (msk_req != 0)
+        nxt_grant = tmp_grant;
+      else
+        nxt_grant = cur_req & (~cur_req + 1);
+    end
+  endfunction
   
   generate
     for (i=0; i<inputs; i=i+1)
@@ -130,6 +158,8 @@ module sd_rrslow
         nxt_rr_state = rr_state;
       else if ((mode == 2) & (rr_locked | (c_srdy & rr_state)))
         nxt_rr_state = rr_state;
+      else if (fast_arb)
+        nxt_rr_state = nxt_grant (rr_state, c_srdy);
       else
         nxt_rr_state = { rr_state[0], rr_state[inputs-1:1] };
     end
