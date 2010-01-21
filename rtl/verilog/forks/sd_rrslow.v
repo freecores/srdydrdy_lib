@@ -51,6 +51,7 @@ module sd_rrslow
    output  [inputs-1:0]    c_drdy,
 
    output reg [width-1:0]  p_data,
+   output [inputs-1:0]     p_grant,
    output reg              p_srdy,
    input                   p_drdy
    );
@@ -67,6 +68,7 @@ module sd_rrslow
   wire                 trig_pattern;
 
   assign c_drdy = rr_state & {inputs{p_drdy}};
+  assign p_grant = rr_state;
   
   generate
     for (i=0; i<inputs; i=i+1)
