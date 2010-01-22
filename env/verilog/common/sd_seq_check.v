@@ -31,6 +31,7 @@ module sd_seq_check
   reg [pat_dep-1:0]  drdy_pat;
   integer 	     dpp;
   reg 		     nxt_c_drdy;
+  integer            err_cnt;
 
   initial
     begin
@@ -42,6 +43,7 @@ module sd_seq_check
     begin
       first = 1;
       c_drdy = 0;
+      err_cnt = 0;
     end
 
   always @*
@@ -78,6 +80,11 @@ module sd_seq_check
       if (reset)
 	begin
 	  c_drdy <= `SDLIB_DELAY 0;
+          err_cnt  = 0;
+          drdy_pat = {pat_dep{1'b1}};
+          dpp = 0;
+          first = 1;
+          last_seq = 0;
 	end
       else
 	begin
@@ -85,8 +92,11 @@ module sd_seq_check
 	  if (c_srdy & c_drdy)
 	    begin
 	      if (!first && (c_data !== (last_seq + 1)))
-		$display ("%t: ERROR   : %m: Sequence miscompare rcv=%x exp=%x",
-			  $time, c_data, last_seq+1);
+                begin
+		  $display ("%t: ERROR   : %m: Sequence miscompare rcv=%x exp=%x",
+			    $time, c_data, last_seq+1);
+                  err_cnt = err_cnt + 1;
+                end
 	      else
 		begin
 		  last_seq = c_data;

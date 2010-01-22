@@ -105,7 +105,7 @@ module sd_fifo_tail_b
 	  nxt_cur_rdptr = com_rdptr;
 	  mem_re = 0;
 	end
-      else if (enable & !empty & ip_drdy)
+      else if (enable & !empty & (ip_drdy | (rbuf1_drdy & !prev_re)))
         begin
 	  nxt_cur_rdptr = cur_rdptr_p1;
           mem_re = 1;

@@ -71,14 +71,24 @@ module sd_seq_gen
 
   always @(posedge clk)
     begin
-      if ((p_srdy & p_drdy) | !p_srdy)
-	spp = (spp + 1) % pat_dep;
-
-      if (p_srdy & p_drdy)
-	begin
-	  if (rep_count != -1)
-	    rep_count = rep_count - 1;
-	end
+      if (reset)
+        begin
+          srdy_pat = {pat_dep{1'b1}};
+          spp = 0;
+          startup = 0;
+          rep_count = 0;
+        end
+      else
+        begin
+          if ((p_srdy & p_drdy) | !p_srdy)
+	    spp = (spp + 1) % pat_dep;
+          
+          if (p_srdy & p_drdy)
+	    begin
+	      if (rep_count != -1)
+	        rep_count = rep_count - 1;
+	    end
+        end
     end
 
   always @(posedge clk)
