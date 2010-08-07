@@ -14,9 +14,9 @@
 //          When input deasserts, device will begin to hunt for a
 //          new input with data.
 // Mode 2 : Continue to accept input until the incoming data
-//          matches a particular "end pattern".  The trigger pattern
-//          is when (c_data & eod_mask) == eod_pattern.  Once
-//          trigger pattern is seen, begin hunting for new input.
+//          matches a particular "end pattern".  The end pattern
+//          is provided on the c_rearb (re-arbitrate) input.  When
+//          c_rearb is high, will hunt for new inputs on next clock.
 //
 // This component also supports two arbitration modes: slow and fast.
 // slow rotates the grant from requestor to requestor cycle by cycle,
@@ -51,8 +51,6 @@ module sd_rrmux
   #(parameter width=8,
     parameter inputs=2,
     parameter mode=0,
-    parameter eod_pattern=0,
-    parameter eod_mask=0,
     parameter fast_arb=0)
   (
    input               clk,
@@ -61,6 +59,7 @@ module sd_rrmux
    input [(width*inputs)-1:0] c_data,
    input [inputs-1:0]      c_srdy,
    output  [inputs-1:0]    c_drdy,
+   input                   c_rearb,  // for use with mode 2 only
 
    output reg [width-1:0]  p_data,
    output [inputs-1:0]     p_grant,
@@ -77,7 +76,6 @@ module sd_rrmux
   reg 		       rr_locked;
   genvar               i;
   integer              j;
-  wire                 trig_pattern;
 
   assign c_drdy = rr_state & {inputs{p_drdy}};
   assign p_grant = rr_state;
@@ -108,7 +106,6 @@ module sd_rrmux
       begin : tp_gen
         reg nxt_rr_locked;
         
-        assign trig_pattern = (rr_mux_grid[data_ind] & eod_mask) == eod_pattern;
         always @*
           begin
             data_ind = 0;
@@ -120,7 +117,7 @@ module sd_rrmux
 
             if ((c_srdy & rr_state) & (!rr_locked))
               nxt_rr_locked = 1;
-            else if ((c_srdy & rr_state) & p_drdy & trig_pattern )
+            else if ((c_srdy & rr_state & c_rearb) & p_drdy )
               nxt_rr_locked = 0;
           end
 
@@ -132,10 +129,6 @@ module sd_rrmux
               rr_locked <= `SDLIB_DELAY nxt_rr_locked;
           end
       end // block: tp_gen
-    else
-      begin : ntp_gen
-        assign trig_pattern = 1'b0;
-      end
   endgenerate
 
   always @*

@@ -25,103 +25,31 @@ module sd_rx_gigmac
 
   reg 		rxdv1, rxdv2;
   reg [7:0] 	rxd1, rxd2;
-  reg [31:0] 	calc_crc, nxt_calc_crc;
-  reg [31:0] 	pkt_crc, nxt_pkt_crc;
+  reg [31:0]    pkt_crc;
   reg [3:0] 	valid_bits, nxt_valid_bits;
+  reg [31:0]    nxt_pkt_crc;
 
-  reg [5:0] 	state, nxt_state;
+  reg [6:0] 	state, nxt_state;
   reg 		ic_srdy;
   wire 		ic_drdy;
   reg [1:0] 	ic_code;
   reg [7:0] 	ic_data;
+  wire [31:0]   crc;
 
-  wire [31:0] 	crc_comp_a, crc_comp_b;
+  reg           crc_valid;
+  reg           crc_clear;
+  
+  mac_crc32 crc_chk
+    (
+     .clear                             (crc_clear),
+     .data                              (rxd2),
+     .valid                             (crc_valid),
 
-  assign crc_comp_a = { pkt_crc[23:0], rxd2 };
-  assign crc_comp_b = fixup_crc (calc_crc);
-  localparam	CRC32_POLY = 32'h04C11DB7;
-
-  function [31:0] add_crc32;
-    input [7:0] add_byte;
-    input [31:0] prev_crc;
-    integer 	 b, msb;
-    reg [31:0] 	 tmp_crc;
-    begin
-      tmp_crc = prev_crc;
-      for (b = 0; b < 8; b = b + 1) 
-	begin
-          msb = tmp_crc[31];
-          tmp_crc = tmp_crc << 1;
-          if (msb != add_byte[b]) 
-	    begin
-              tmp_crc = tmp_crc ^ CRC32_POLY;
-              tmp_crc[0] = 1;
-            end
-	end
-      add_crc32 = tmp_crc;
-    end
-  endfunction // for
-
-  function [31:0] fixup_crc;
-    input [31:0] calc_crc;
-    reg [31:0] 	 temp;
-    integer 	 b;
-    begin
-      // Mirror:
-      for (b = 0; b < 32; b = b + 1)
-         temp[31-b] = calc_crc[b];
-         
-      // Swap and Complement:
-      fixup_crc = ~{temp[7:0], temp[15:8], temp[23:16], temp[31:24]};
-    end
-  endfunction // for
-      
-
-/* -----\/----- EXCLUDED -----\/-----
-  // Copied from: http://www.mindspring.com/~tcoonan/gencrc.v
-  // 
-  // Generate a (DOCSIS) CRC32.
-  //
-  // Uses the GLOBAL variables:
-  //
-  //    Globals referenced:
-  //       parameter	CRC32_POLY = 32'h04C11DB7;
-  //       reg [ 7:0]	crc32_packet[0:255];
-  //       integer	crc32_length;
-  //
-  //    Globals modified:
-  //       reg [31:0]	crc32_result;
-  //
-task gencrc32;
-   integer	byte, bit;
-   reg		msb;
-   reg [7:0]	current_byte;
-   reg [31:0]	temp;
-   begin
-      crc32_result = 32'hffffffff;
-      for (byte = 0; byte < crc32_length; byte = byte + 1) begin
-         current_byte = crc32_packet[byte];
-         for (bit = 0; bit < 8; bit = bit + 1) begin
-            msb = crc32_result[31];
-            crc32_result = crc32_result << 1;
-            if (msb != current_byte[bit]) begin
-               crc32_result = crc32_result ^ CRC32_POLY;
-               crc32_result[0] = 1;
-            end
-         end
-      end
-      
-      // Last step is to "mirror" every bit, swap the 4 bytes, and then complement each bit.
-      //
-      // Mirror:
-      for (bit = 0; bit < 32; bit = bit + 1)
-         temp[31-bit] = crc32_result[bit];
-         
-      // Swap and Complement:
-      crc32_result = ~{temp[7:0], temp[15:8], temp[23:16], temp[31:24]};
-   end
-endtask
- -----/\----- EXCLUDED -----/\----- */
+     /*AUTOINST*/
+     // Outputs
+     .crc                               (crc[31:0]),
+     // Inputs
+     .clk                               (clk));
 
   always @(posedge clk)
     begin
@@ -131,6 +59,7 @@ endtask
 	  rxdv1 <= #1 0;
 	  rxd2  <= #1 0;
 	  rxdv2 <= #1 0;
+          pkt_crc <= #1 0;
 	end
       else
 	begin
@@ -138,24 +67,27 @@ endtask
 	  rxdv1 <= #1 gmii_rx_dv;
 	  rxd2  <= #1 rxd1;
 	  rxdv2 <= #1 rxdv1;
+          pkt_crc <= #1 nxt_pkt_crc;
 	end
     end // always @ (posedge clk)
 
-  localparam s_idle = 0, s_preamble = 1, s_sop = 2, s_payload = 3, s_trunc = 4, s_sink = 5;
+  localparam s_idle = 0, s_preamble = 1, s_sop = 2, s_payload = 3, s_trunc = 4, s_sink = 5, s_eop = 6;
   localparam ns_idle = 1, ns_preamble = 2, ns_sop = 4, ns_payload = 8, ns_trunc = 16, ns_sink = 32;
 
   always @*
     begin
-      nxt_calc_crc = calc_crc;
       ic_srdy = 0;
       ic_code = `PCC_DATA;
       ic_data = 0;
       nxt_valid_bits = valid_bits;
+      nxt_pkt_crc = pkt_crc;
+      crc_valid = 0;
+      crc_clear = 0;
 
       case (1'b1)
 	state[s_idle] :
 	  begin
-	    nxt_calc_crc = {32{1'b1}};
+            crc_clear = 1;
 	    nxt_pkt_crc  = 0;
 	    nxt_valid_bits = 0;
 	    if (rxdv2 & (rxd2 == `GMII_SFD))
@@ -189,10 +121,9 @@ endtask
 		ic_srdy = 1;
 		ic_code = `PCC_SOP;
 		ic_data = rxd2;
+                crc_valid = 1;
+                nxt_pkt_crc = { rxd2, pkt_crc[31:8] };
 		nxt_state = ns_payload;
-		nxt_pkt_crc = { 24'h0, gmii_rxd };
-		nxt_valid_bits = 4'b0001;
-		//nxt_calc_crc = add_crc32 (gmii_rxd, calc_crc);
 	      end
 	  end // case: state[ns_payload]
 
@@ -202,31 +133,39 @@ endtask
 	      nxt_state = ns_trunc;
 	    else if (!rxdv1)
 	      begin
-		nxt_state = ns_idle;
-		ic_srdy = 1;
+		//nxt_state = ns_idle;
+		ic_srdy = 0;
 		ic_data = rxd2;
-		//if ( { pkt_crc[23:0], rxd2 } == add_crc32 (rxd2, calc_crc))
-                `ifdef RX_CHECK_CRC
-		if ({ pkt_crc[23:0], rxd2 } == fixup_crc (calc_crc))
-		  ic_code = `PCC_EOP;
-		else
-		  ic_code = `PCC_BADEOP;
-                `else
-		ic_code = `PCC_EOP;
-                `endif
+                crc_valid = 1;
+                nxt_pkt_crc = { rxd2, pkt_crc[31:8] };
+                nxt_state = 1 << s_eop;
 	      end
 	    else
 	      begin
 		ic_srdy = 1;
 		ic_code = `PCC_DATA;
 		ic_data = rxd2;
-		nxt_pkt_crc = { pkt_crc[23:0], rxd2 };
-		nxt_valid_bits = { valid_bits[2:0], 1'b1 };
-		if (valid_bits[2])
-		  nxt_calc_crc = add_crc32 (pkt_crc[23:16], calc_crc);
+                crc_valid = 1;
+                nxt_pkt_crc = { rxd2, pkt_crc[31:8] };
 	      end // else: !if(!rxdv1)
 	  end // case: state[ns_payload]
 
+
+        state[s_eop] :
+          begin
+            ic_srdy =1;
+            ic_data = pkt_crc[31:24];
+            if (pkt_crc == crc)
+              begin
+                ic_code = `PCC_EOP;
+              end
+            else
+              ic_code = `PCC_BADEOP;
+
+            if (ic_drdy)
+              nxt_state = 1 << s_idle;
+          end
+          
 	state[s_trunc] :
 	  begin
 	    ic_srdy = 1;
@@ -252,15 +191,13 @@ endtask
 	begin
 	  state <= #1 1;
 	  /*AUTORESET*/
-	  // Beginning of autoreset for uninitialized flops
-	  calc_crc <= 32'h0;
-	  pkt_crc <= 32'h0;
-	  valid_bits <= 4'h0;
-	  // End of automatics
+          // Beginning of autoreset for uninitialized flops
+          pkt_crc <= 32'h0;
+          valid_bits <= 4'h0;
+          // End of automatics
 	end
       else
 	begin
-	  calc_crc <= #1 nxt_calc_crc;
 	  pkt_crc  <= #1 nxt_pkt_crc;
 	  state    <= #1 nxt_state;
 	  valid_bits <= #1 nxt_valid_bits;

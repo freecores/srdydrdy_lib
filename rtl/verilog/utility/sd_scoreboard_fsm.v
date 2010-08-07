@@ -32,7 +32,7 @@ module sd_scoreboard_fsm
     parameter use_txid=0,
     parameter use_mask=0,
     parameter txid_sz=2,
-    parameter asz=$clog2(items))
+    parameter asz=6)  //log2(items))
   (input      clk,
    input      reset,
 

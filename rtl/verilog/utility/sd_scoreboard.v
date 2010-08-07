@@ -19,7 +19,7 @@ module sd_scoreboard
     parameter use_txid=0,
     parameter use_mask=0,
     parameter txid_sz=2,
-    parameter asz=$clog2(items))
+    parameter asz=6)  //log2(items))
   (input      clk,
    input      reset,
 
@@ -37,7 +37,8 @@ module sd_scoreboard
    output [width-1:0]   p_data
    );
 
-  localparam tot_in_sz = width*2+txid_sz+asz+1;
+  localparam tot_in_sz = ((use_mask)?width*2:width)+
+                         ((use_txid)?txid_sz:0)+asz+1;
   
   wire                  ip_req_type; // 0=read, 1=write
   wire [txid_sz-1:0]    ip_txid;
@@ -49,9 +50,9 @@ module sd_scoreboard
   
   /*AUTOWIRE*/
   // Beginning of automatic wires (for undeclared instantiated-module outputs)
-  wire [asz-1:0]        addr;                   // From fsm of sd_scoreboard_fsm.v
-  wire [width-1:0]      d_in;                   // From fsm of sd_scoreboard_fsm.v
-  wire [width-1:0]      d_out;                  // From sb_mem of behave1p_mem.v
+  wire [(asz)-1:0]      addr;                   // From fsm of sd_scoreboard_fsm.v
+  wire [(width)-1:0]    d_in;                   // From fsm of sd_scoreboard_fsm.v
+  wire [(width)-1:0]    d_out;                  // From sb_mem of behave1p_mem.v
   wire                  ic_drdy;                // From outhold of sd_output.v
   wire                  ic_srdy;                // From fsm of sd_scoreboard_fsm.v
   wire                  ip_drdy;                // From fsm of sd_scoreboard_fsm.v
@@ -60,10 +61,38 @@ module sd_scoreboard
   wire                  wr_en;                  // From fsm of sd_scoreboard_fsm.v
   // End of automatics
 
+  wire [tot_in_sz-1:0]  c_hold_data, p_hold_data;
+  
+  generate if ((use_txid == 1) && (use_mask == 1))
+    begin : txid_and_mask
+      assign c_hold_data = {c_txid,c_req_type,c_itemid,c_mask,c_data};
+      assign {ip_txid,ip_req_type,ip_itemid,ip_mask,ip_data} = p_hold_data;
+    end
+  else if ((use_txid == 0) && (use_mask == 1))
+    begin : no_txid_and_mask
+      assign c_hold_data = {c_req_type,c_itemid,c_mask,c_data};
+      assign {ip_req_type,ip_itemid,ip_mask,ip_data} = p_hold_data;
+      assign ip_mask = 0;
+    end
+  else if ((use_txid == 1) && (use_mask == 0))
+    begin : txid_and_no_mask
+      assign c_hold_data = {c_txid,c_req_type,c_itemid,c_data};
+      assign {ip_txid,ip_req_type,ip_itemid,ip_data} = p_hold_data;
+      assign ip_txid = 0;
+    end
+  else if ((use_txid == 0) && (use_mask == 0))
+    begin : no_txid_no_mask
+      assign c_hold_data = {c_req_type,c_itemid,c_data};
+      assign {ip_req_type,ip_itemid,ip_data} = p_hold_data;
+      assign ip_mask = 0;
+      assign ip_txid = 0;
+    end
+  endgenerate
+  
   sd_input #(.width(tot_in_sz)) inhold
     (
-     .c_data     ({c_txid,c_req_type,c_itemid,c_mask,c_data}),
-     .ip_data    ({ip_txid,ip_req_type,ip_itemid,ip_mask,ip_data}),
+     .c_data     (c_hold_data),
+     .ip_data    (p_hold_data),
      /*AUTOINST*/
      // Outputs
      .c_drdy                            (c_drdy),
@@ -74,40 +103,50 @@ module sd_scoreboard
      .c_srdy                            (c_srdy),
      .ip_drdy                           (ip_drdy));
 
-  behave1p_mem #(.depth(items), .width(width)) sb_mem
+  behave1p_mem #(.depth(items),
+                 .addr_sz               (asz), /*AUTOINSTPARAM*/
+                 // Parameters
+                 .width                 (width)) sb_mem
     (
      .addr                              (addr[asz-1:0]),
      /*AUTOINST*/
      // Outputs
-     .d_out                             (d_out[width-1:0]),
+     .d_out                             (d_out[(width)-1:0]),
      // Inputs
      .wr_en                             (wr_en),
      .rd_en                             (rd_en),
      .clk                               (clk),
-     .d_in                              (d_in[width-1:0]));
+     .d_in                              (d_in[(width)-1:0]));
 
-  sd_scoreboard_fsm #(width,items,use_txid,use_mask,txid_sz) fsm
+  sd_scoreboard_fsm #(/*AUTOINSTPARAM*/
+                      // Parameters
+                      .width            (width),
+                      .items            (items),
+                      .use_txid         (use_txid),
+                      .use_mask         (use_mask),
+                      .txid_sz          (txid_sz),
+                      .asz              (asz)) fsm
     (/*AUTOINST*/
      // Outputs
      .ip_drdy                           (ip_drdy),
      .ic_srdy                           (ic_srdy),
-     .ic_txid                           (ic_txid[txid_sz-1:0]),
-     .ic_data                           (ic_data[width-1:0]),
+     .ic_txid                           (ic_txid[(txid_sz)-1:0]),
+     .ic_data                           (ic_data[(width)-1:0]),
      .wr_en                             (wr_en),
      .rd_en                             (rd_en),
-     .d_in                              (d_in[width-1:0]),
-     .addr                              (addr[asz-1:0]),
+     .d_in                              (d_in[(width)-1:0]),
+     .addr                              (addr[(asz)-1:0]),
      // Inputs
      .clk                               (clk),
      .reset                             (reset),
      .ip_srdy                           (ip_srdy),
      .ip_req_type                       (ip_req_type),
-     .ip_txid                           (ip_txid[txid_sz-1:0]),
-     .ip_mask                           (ip_mask[width-1:0]),
-     .ip_data                           (ip_data[width-1:0]),
-     .ip_itemid                         (ip_itemid[asz-1:0]),
+     .ip_txid                           (ip_txid[(txid_sz)-1:0]),
+     .ip_mask                           (ip_mask[(width)-1:0]),
+     .ip_data                           (ip_data[(width)-1:0]),
+     .ip_itemid                         (ip_itemid[(asz)-1:0]),
      .ic_drdy                           (ic_drdy),
-     .d_out                             (d_out[width-1:0]));
+     .d_out                             (d_out[(width)-1:0]));
 
   sd_output #(.width(width+txid_sz)) outhold
     (

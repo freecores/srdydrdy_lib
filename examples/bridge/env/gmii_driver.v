@@ -21,6 +21,35 @@ module gmii_driver
       forever rx_clk = #4 ~rx_clk;
     end
 
+  task gencrc32;
+    input [7:0]   length;
+    output [31:0] icrc;
+    reg [31:0]    nxt_icrc;
+    integer       i, len;
+    begin
+      icrc = {32{1'b1}};
+      
+      for (len=0; len<length; len=len+1)
+        begin
+          nxt_icrc[7:0] = icrc[7:0] ^ rxbuf[len];
+          nxt_icrc[31:8] = icrc[31:8];
+
+          for (i=0; i<8; i=i+1)
+	    begin
+	      if (nxt_icrc[0])
+	        nxt_icrc = nxt_icrc[31:1] ^ 32'hEDB88320;
+	      else
+	        nxt_icrc = nxt_icrc[31:1];
+	    end
+
+          icrc = nxt_icrc;
+        end // for (len=0; len<length; len=len+1)
+
+      icrc = ~icrc;
+    end
+  endtask
+      
+/* -----\/----- EXCLUDED -----\/-----
   // Copied from: http://www.mindspring.com/~tcoonan/gencrc.v
   // 
   // Generate a (DOCSIS) CRC32.
@@ -66,6 +95,7 @@ module gmii_driver
       crc32_result = ~{temp[7:0], temp[15:8], temp[23:16], temp[31:24]};
    end
 endtask
+ -----/\----- EXCLUDED -----/\----- */
 
   task print_packet;
     input [31:0] length;
@@ -92,9 +122,10 @@ endtask
       for (p=12; p<length; p=p+1)
 	rxbuf[p] = $random;
 
-      gencrc32 (length);
-      { rxbuf[length-4], rxbuf[length-3],
-        rxbuf[length-2], rxbuf[length-1] } = crc32_result;
+      //gencrc32 (length);
+      gencrc32 (length, crc32_result);
+      { rxbuf[length-1], rxbuf[length-2],
+        rxbuf[length-3], rxbuf[length-4] } = crc32_result;
 
       $display ("%m : Sending packet DA=%x SA=%x of length %0d", da, sa, length);
       print_packet (length);
