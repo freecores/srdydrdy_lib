@@ -31,7 +31,9 @@ module sd_bpdrop
    input               clk,
    input               reset,
 
+   input               g_enable,
    input [cnt_sz-1:0]  g_max_count,
+   output reg          g_drop,     // token frame was sunk
   
    input               c_srdy,
    input               c_fr_start, // start of frame signal
@@ -53,17 +55,22 @@ module sd_bpdrop
       np_srdy = 0;
       nxt_state = state;
       nxt_count = count;
+      g_drop = 0;
       
       case (state)
         s_idle :
           begin
-            
-            if (c_srdy & c_fr_start)
+            if (!g_enable)
               begin
+                nc_drdy = p_drdy;
+                np_srdy = c_srdy;
+              end
+            else if (c_srdy & c_fr_start)
+              begin
+                np_srdy = 1;
                 if (p_drdy)
                   begin
                     nc_drdy = 1;
-                    np_srdy = 1;
                     nxt_state = s_xfer;
                   end
                 else
@@ -73,6 +80,7 @@ module sd_bpdrop
                       begin
                         nc_drdy = 1;
                         nxt_state = s_sink;
+                        g_drop = 1;
                       end
                   end
               end
@@ -89,14 +97,11 @@ module sd_bpdrop
         s_xfer :
           begin
             nxt_count = 0;
-            if (c_srdy & p_drdy)
-              begin
-                nc_drdy = 1;
-                np_srdy = 1;
-                if (c_fr_end)
-                  nxt_state = s_idle;
-              end
-          end // case: s_xfer
+            np_srdy = c_srdy;
+            nc_drdy = p_drdy;
+            if (c_srdy & p_drdy & c_fr_end)
+              nxt_state = s_idle;
+         end // case: s_xfer
 
         s_sink :
           begin
