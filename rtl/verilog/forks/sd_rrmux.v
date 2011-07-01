@@ -50,6 +50,7 @@
 module sd_rrmux
   #(parameter width=8,
     parameter inputs=2,
+    parameter inputs_asz=1,  // log2(inputs)
     parameter mode=0,
     parameter fast_arb=0)
   (
@@ -69,8 +70,6 @@ module sd_rrmux
   
   reg [inputs-1:0]    rr_state;
   reg [inputs-1:0]    nxt_rr_state;
-
-  reg [$clog2(inputs)-1:0] data_ind;
 
   wire [width-1:0]     rr_mux_grid [0:inputs-1];
   reg 		       rr_locked;
@@ -105,20 +104,16 @@ module sd_rrmux
     if (mode == 2)
       begin : tp_gen
         reg nxt_rr_locked;
+        reg selected_srdy;
         
         always @*
           begin
-            data_ind = 0;
-            for (j=0; j<inputs; j=j+1)
-              if (rr_state[j])
-                data_ind = j;
-
-            nxt_rr_locked = rr_locked;
-
-            if ((c_srdy & rr_state) & (!rr_locked))
-              nxt_rr_locked = 1;
-            else if ((c_srdy & rr_state & c_rearb) & p_drdy )
+            if (c_rearb)
               nxt_rr_locked = 0;
+            else if ((nxt_rr_state != rr_state) && (nxt_rr_state != 0))
+              nxt_rr_locked = 1;
+            else
+              nxt_rr_locked = rr_locked;              
           end
 
         always @(`SDLIB_CLOCKING)
