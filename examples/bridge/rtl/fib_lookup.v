@@ -4,39 +4,43 @@
 module fib_lookup
   (/*AUTOARG*/
   // Outputs
-  ppi_drdy, flo_data, flo_srdy,
+  refup_srdy, refup_page, refup_count, ppi_drdy, flo_data, flo_srdy,
   // Inputs
-  ppi_srdy, clk, reset, ppi_data, flo_drdy
+  refup_drdy, ppi_srdy, clk, reset, ppi_data, flo_drdy
   );
 
   input     clk;
   input     reset;
 
-  input [`PAR_DATA_SZ-1:0] ppi_data;
-  output [`NUM_PORTS-1:0]  flo_data;
+  input [`PM2F_SZ-1:0] ppi_data;
+  output [`LL_PG_ASZ-1:0]  flo_data;
   output [`NUM_PORTS-1:0]  flo_srdy;
   input [`NUM_PORTS-1:0]   flo_drdy;
   /*AUTOINPUT*/
   // Beginning of automatic inputs (from unused autoinst inputs)
   input                 ppi_srdy;               // To port_parse_in of sd_input.v
+  input                 refup_drdy;             // To fsm0 of fib_lookup_fsm.v
   // End of automatics
   /*AUTOOUTPUT*/
   // Beginning of automatic outputs (from unused autoinst outputs)
   output                ppi_drdy;               // From port_parse_in of sd_input.v
+  output [`LL_REFSZ-1:0] refup_count;           // From fsm0 of fib_lookup_fsm.v
+  output [`LL_PG_ASZ-1:0] refup_page;           // From fsm0 of fib_lookup_fsm.v
+  output                refup_srdy;             // From fsm0 of fib_lookup_fsm.v
   // End of automatics
 
   wire [`FIB_ENTRY_SZ-1:0] ft_rdata;
-  wire [`PAR_DATA_SZ-1:0] lpp_data;
+  wire [`PM2F_SZ-1:0] lpp_data;
   /*AUTOWIRE*/
   // Beginning of automatic wires (for undeclared instantiated-module outputs)
   wire [`FIB_ASZ-1:0]   ft_addr;                // From fsm0 of fib_lookup_fsm.v
   wire                  ft_rd_en;               // From fsm0 of fib_lookup_fsm.v
   wire [`FIB_ENTRY_SZ-1:0] ft_wdata;            // From fsm0 of fib_lookup_fsm.v
   wire                  ft_wr_en;               // From fsm0 of fib_lookup_fsm.v
-  wire [`NUM_PORTS-1:0] lout_data;              // From fsm0 of fib_lookup_fsm.v
   wire                  lout_drdy;              // From fib_res_out of sd_mirror.v
   wire [`NUM_PORTS-1:0] lout_dst_vld;           // From fsm0 of fib_lookup_fsm.v
   wire                  lout_srdy;              // From fsm0 of fib_lookup_fsm.v
+  wire [`LL_PG_ASZ-1:0] lout_start;             // From fsm0 of fib_lookup_fsm.v
   wire                  lpp_drdy;               // From fsm0 of fib_lookup_fsm.v
   wire                  lpp_srdy;               // From port_parse_in of sd_input.v
   // End of automatics
@@ -47,7 +51,7 @@ module fib_lookup
  .ip_\(.*\)     (lpp_\1),
  );
  */
-  sd_input #(`PAR_DATA_SZ) port_parse_in
+  sd_input #(`PM2F_SZ) port_parse_in
     (/*AUTOINST*/
      // Outputs
      .c_drdy                            (ppi_drdy),              // Templated
@@ -87,24 +91,31 @@ module fib_lookup
      .ft_rd_en                          (ft_rd_en),
      .ft_wr_en                          (ft_wr_en),
      .ft_addr                           (ft_addr[`FIB_ASZ-1:0]),
-     .lout_data                         (lout_data[`NUM_PORTS-1:0]),
+     .lout_start                        (lout_start[`LL_PG_ASZ-1:0]),
      .lout_srdy                         (lout_srdy),
      .lout_dst_vld                      (lout_dst_vld[`NUM_PORTS-1:0]),
+     .refup_srdy                        (refup_srdy),
+     .refup_page                        (refup_page[`LL_PG_ASZ-1:0]),
+     .refup_count                       (refup_count[`LL_REFSZ-1:0]),
      // Inputs
      .clk                               (clk),
      .reset                             (reset),
-     .lpp_data                          (lpp_data[`PAR_DATA_SZ-1:0]),
+     .lpp_data                          (lpp_data[`PM2F_SZ-1:0]),
      .lpp_srdy                          (lpp_srdy),
      .ft_rdata                          (ft_rdata[`FIB_ENTRY_SZ-1:0]),
-     .lout_drdy                         (lout_drdy));
+     .lout_drdy                         (lout_drdy),
+     .refup_drdy                        (refup_drdy));
 
 /* sd_mirror AUTO_TEMPLATE
  (
+ .c_data       (lout_start[`LL_PG_ASZ-1:0]),
  .c_\(.*\)     (lout_\1),
  .p_\(.*\)     (flo_\1),
  )
  */
-  sd_mirror #(`NUM_PORTS, `NUM_PORTS) fib_res_out
+  sd_mirror #(// Parameters
+              .mirror                   (`NUM_PORTS),
+              .width                    (`LL_PG_ASZ)) fib_res_out
     (/*AUTOINST*/
      // Outputs
      .c_drdy                            (lout_drdy),             // Templated
@@ -114,7 +125,7 @@ module fib_lookup
      .clk                               (clk),
      .reset                             (reset),
      .c_srdy                            (lout_srdy),             // Templated
-     .c_data                            (lout_data),             // Templated
+     .c_data                            (lout_start[`LL_PG_ASZ-1:0]), // Templated
      .c_dst_vld                         (lout_dst_vld),          // Templated
      .p_drdy                            (flo_drdy));              // Templated
 
