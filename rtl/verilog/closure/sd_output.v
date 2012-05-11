@@ -37,17 +37,13 @@ module sd_output
    );
 
   reg 	  load;   // true when data will be loaded into p_data
-  reg 	  drain;  // true when data will be emptied from p_data
-  reg 	  hold;   // true when data will be held in p_data
   reg 	  nxt_p_srdy;
 
   always @*
     begin
-      drain = p_srdy & p_drdy;
-      hold  = p_srdy & !p_drdy;
-      ic_drdy = drain | !p_srdy;
+      ic_drdy = p_drdy | !p_srdy;
       load  = ic_srdy & ic_drdy;
-      nxt_p_srdy = load | hold;
+      nxt_p_srdy = load | (p_srdy & !p_drdy);
     end
   
   always @(`SDLIB_CLOCKING)

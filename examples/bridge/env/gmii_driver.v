@@ -43,6 +43,7 @@ module gmii_driver
 	    end
 
           icrc = nxt_icrc;
+	  $display ("DEBUG: byte %02d data=%x crc=%x", len, rxbuf[len], icrc);
         end // for (len=0; len<length; len=len+1)
 
       icrc = ~icrc;
@@ -123,7 +124,7 @@ endtask
 	rxbuf[p] = $random;
 
       //gencrc32 (length);
-      gencrc32 (length, crc32_result);
+      gencrc32 (length-4, crc32_result);
       { rxbuf[length-1], rxbuf[length-2],
         rxbuf[length-3], rxbuf[length-4] } = crc32_result;
 

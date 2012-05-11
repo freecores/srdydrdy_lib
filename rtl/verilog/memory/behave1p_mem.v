@@ -38,6 +38,7 @@ module behave1p_mem
 
   assign d_out = array[r_addr];
 
+`ifndef verilator
   genvar g;
 
   generate
@@ -48,5 +49,6 @@ module behave1p_mem
 	assign brk=array[g];
       end
   endgenerate
+`endif
 
 endmodule

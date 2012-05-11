@@ -10,6 +10,13 @@
 //          demultiplexer.  Output flow control will cause the
 //          component to stall, so that inputs do not miss their
 //          turn due to flow control.
+// Mode 0 fast arb : Each input gets a single grant. If the
+//          output is not ready (p_drdy deasserted), then the
+//          machine will hold on that particular input until it
+//          receives a grant.  Once a single token has been
+//          accepted the machine will round-robin arbitrate.
+//          When there are no requests the machine returns to
+//          its default state.
 // Mode 1 : Each input can transmit for as long as it has data.
 //          When input deasserts, device will begin to hunt for a
 //          new input with data.
@@ -62,18 +69,18 @@ module sd_rrmux
    output  [inputs-1:0]    c_drdy,
    input                   c_rearb,  // for use with mode 2 only
 
-   output reg [width-1:0]  p_data,
+   output     [width-1:0]  p_data,
    output [inputs-1:0]     p_grant,
-   output reg              p_srdy,
+   output                  p_srdy,
    input                   p_drdy
    );
   
   reg [inputs-1:0]    rr_state;
   reg [inputs-1:0]    nxt_rr_state;
 
-  wire [width-1:0]     rr_mux_grid [0:inputs-1];
+  //wire [width-1:0]     rr_mux_grid [0:inputs-1];
   reg 		       rr_locked;
-  genvar               i;
+  //genvar               i;
   integer              j;
 
   assign c_drdy = rr_state & {inputs{p_drdy}};
@@ -95,11 +102,23 @@ module sd_rrmux
     end
   endfunction
   
+  always @*
+    begin
+      data_ind = 0;
+      for (j=0; j<inputs; j=j+1)
+        if (rr_state[j])
+          data_ind = j;
+    end
+
   generate
+/* -----\/----- EXCLUDED -----\/-----
     for (i=0; i<inputs; i=i+1)
       begin : grid_assign
+        wire [width-1:0] temp;
+        assign temp = c_data >> (i*width);
         assign rr_mux_grid[i] = c_data >> (i*width);
       end
+ -----/\----- EXCLUDED -----/\----- */
 
     if (mode == 2)
       begin : tp_gen
@@ -108,7 +127,18 @@ module sd_rrmux
         
         always @*
           begin
-            if (c_rearb)
+/* -----\/----- EXCLUDED -----\/-----
+            data_ind = 0;
+            for (j=0; j<inputs; j=j+1)
+              if (rr_state[j])
+                data_ind = j;
+ -----/\----- EXCLUDED -----/\----- */
+
+            nxt_rr_locked = rr_locked;
+
+            if ((c_srdy & rr_state) & (!rr_locked))
+              nxt_rr_locked = 1;
+            else if ((c_srdy & rr_state & c_rearb) & p_drdy )
               nxt_rr_locked = 0;
             else if ((nxt_rr_state != rr_state) && (nxt_rr_state != 0))
               nxt_rr_locked = 1;
@@ -126,23 +156,16 @@ module sd_rrmux
       end // block: tp_gen
   endgenerate
 
-  always @*
-    begin
-      p_data = 0;
-      p_srdy = 0;
-      for (j=0; j<inputs; j=j+1)
-        if (rr_state[j])
-          begin
-            p_data = rr_mux_grid[j];
-            p_srdy = c_srdy[j];
-          end
-    end
+  assign p_srdy = |(rr_state & c_srdy);
+  assign p_data = c_data[data_ind*width +: width];
   
   always @*
     begin
       if ((mode ==  1) & (c_srdy & rr_state))
         nxt_rr_state = rr_state;
-      else if ((mode == 0) & !p_drdy)
+      else if ((mode == 0) && !p_drdy && !fast_arb)
+        nxt_rr_state = rr_state;
+      else if ((mode == 0) && |(rr_state & c_srdy) && !p_drdy && fast_arb)
         nxt_rr_state = rr_state;
       else if ((mode == 2) & (rr_locked | (c_srdy & rr_state)))
         nxt_rr_state = rr_state;
@@ -155,7 +178,7 @@ module sd_rrmux
   always @(`SDLIB_CLOCKING)
     begin
       if (reset)
-        rr_state <= `SDLIB_DELAY 1;
+        rr_state <= `SDLIB_DELAY (fast_arb)? 0 : 1;
       else
         rr_state <= `SDLIB_DELAY nxt_rr_state;
     end
